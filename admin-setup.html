@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Database Roster Provisioning</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+  <style>
+    :root { --primary: #1e3a8a; }
+    body { background-color: #f3f4f6; padding-top: 2rem; padding-bottom: 4rem; }
+    .management-card { background: white; padding: 1.75rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 2.5rem; }
+    .management-card h2 { border-b: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.5rem; color: #1e3a8a; font-size: 1.5rem; }
+    .status-banner { padding: 0.75rem; border-radius: 6px; font-weight: bold; font-size: 0.9rem; margin-top: 1rem; display: none; text-align: center; }
+    .status-success { background-color: #d1fae5; color: #065f46; display: block; }
+    .status-error { background-color: #fee2e2; color: #991b1b; display: block; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+  </style>
+</head>
+<body>
+
+  <main class="container" style="max-width: 900px;">
+    <header style="margin-bottom: 2rem; text-align: center;">
+      <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">🛠️ Data Management Center</h1>
+      <p style="color: #64748b;">Provision system rosters, coaching tiers, and administrative keys</p>
+    </header>
+
+    <!-- SECTION 1: PLAYERS ROSTER INPUT -->
+    <section class="management-card">
+      <h2>1. Provision Tryout Player</h2>
+      <form id="playerForm">
+        <div class="grid">
+          <div>
+            <label for="pName">Full Name</label>
+            <input type="text" id="pName" placeholder="John Doe" required>
+          </div>
+          <div>
+            <label for="pNumber">Jersey / Bib #</label>
+            <input type="text" id="pNumber" placeholder="42" required>
+          </div>
+        </div>
+        <div class="grid">
+          <div>
+            <label for="pAge">Age Group</label>
+            <select id="pAge" required>
+              <option value="">Select Group...</option>
+              <option value="9U">9U</option>
+              <option value="11U">11U</option>
+              <option value="12U">12U</option>
+              <option value="13U">13U</option>
+              <option value="15U">15U</option>
+            </select>
+          </div>
+          <div>
+            <label for="pLevel">Assigned Level</label>
+            <select id="pLevel" required>
+              <option value="">Select Level...</option>
+              <option value="Tier 1">Tier 1</option>
+              <option value="Tier 2">Tier 2</option>
+              <option value="House League">House League</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="primary">Save Player Record</button>
+        <div id="playerStatus" class="status-banner"></div>
+      </form>
+    </section>
+
+    <!-- SECTION 2: COACH REGISTRATION -->
+    <section class="management-card">
+      <h2>2. Provision Coach Credentials</h2>
+      <form id="coachForm">
+        <div class="grid">
+          <div>
+            <label for="cName">Coach Name</label>
+            <input type="text" id="cName" placeholder="Coach Miller" required>
+          </div>
+          <div>
+            <label for="cTier">Assigned Tier Visibility</label>
+            <select id="cTier" required>
+              <option value="">Select Tier...</option>
+              <option value="Tier 1">Tier 1</option>
+              <option value="Tier 2">Tier 2</option>
+              <option value="House League">House League</option>
+              <option value="All">All Tiers (Global Coach)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="cPassword">Portal Access Password</label>
+          <input type="password" id="cPassword" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="secondary">Register Coach Account</button>
+        <div id="coachStatus" class="status-banner"></div>
+      </form>
+    </section>
+
+    <!-- SECTION 3: ADMIN ACCESS PROVISIONING -->
+    <section class="management-card">
+      <h2>3. Create System Administrator</h2>
+      <form id="adminForm">
+        <div class="grid">
+          <div>
+            <label for="aName">Admin Username / Identifier</label>
+            <input type="text" id="aName" placeholder="admin_master" required>
+          </div>
+          <div>
+            <label for="aPassword">Administrative Master Password</label>
+            <input type="password" id="aPassword" placeholder="••••••••" required>
+          </div>
+        </div>
+        <button type="submit" class="contrast">Generate Admin Privileges</button>
+        <div id="adminStatus" class="status-banner"></div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    // 1. Paste your exact Google Apps Script URL here
+    const GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec";
+
+    // Dynamic submission routing pipeline
+    async function postToGateway(actionType, dataPayload, statusElementId) {
+      const statusEl = document.getElementById(statusElementId);
+      statusEl.className = "status-banner"; 
+      statusEl.innerText = "Transmitting to cloud architecture...";
+      statusEl.style.display = "block";
+
+      const wrapper = {
+        action: actionType,
+        payload: dataPayload
+      };
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify(wrapper)
+        });
+        const responseData = await response.json();
+
+        if (responseData.success) {
+          statusEl.innerText = "Successfully saved entry into cluster database cluster.";
+          statusEl.className = "status-banner status-success";
+          return true;
+        } else {
+          throw new Error(responseData.error || "Unhandled database execution variance.");
+        }
+      } catch (err) {
+        statusEl.innerText = `Write Failure: ${err.message}`;
+        statusEl.className = "status-banner status-error";
+        return false;
+      }
+    }
+
+    // Player submission handling
+    document.getElementById('playerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('pName').value.trim(),
+        playerNumber: document.getElementById('pNumber').value.trim(),
+        age: document.getElementById('pAge').value,
+        tier: document.getElementById('pLevel').value
+      };
+      const ok = await postToGateway("upsertPlayer", payload, "playerStatus");
+      if(ok) {
+        document.getElementById('pName').value = '';
+        document.getElementById('pNumber').value = '';
+      }
+    });
+
+    // Coach user registration handling (Collection: users)
+    document.getElementById('coachForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('cName').value.trim(),
+        role: "coach",
+        tier: document.getElementById('cTier').value,
+        password: document.getElementById('cPassword').value
+      };
+      const ok = await postToGateway("createUser", payload, "coachStatus");
+      if(ok) {
+        document.getElementById('cName').value = '';
+        document.getElementById('cPassword').value = '';
+        document.getElementById('cTier').value = '';
+      }
+    });
+
+    // Admin account provisioning handling (Collection: users)
+    document.getElementById('adminForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('aName').value.trim(),
+        role: "admin",
+        password: document.getElementById('aPassword').value
+      };
+      const ok = await postToGateway("createUser", payload, "adminStatus");
+      if(ok) {
+        document.getElementById('aName').value = '';
+        document.getElementById('aPassword').value = '';
+      }
+    });
+  </script>
+</body>
+</html>
