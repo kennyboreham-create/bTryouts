@@ -94,6 +94,23 @@
       </form>
     </section>
 
+    <!-- SECTION: EVALUATOR REGISTRATION -->
+    <section class="management-card">
+      <h2>Provision Evaluator Credentials</h2>
+      <form id="evaluatorForm">
+        <div>
+          <label for="eName">Evaluator Full Name</label>
+          <input type="text" id="eName" placeholder="John Smith" required>
+        </div>
+        <div>
+          <label for="ePassword">Portal Access Password</label>
+          <input type="password" id="ePassword" placeholder="••••••••" required>
+        </div>
+        <button type="submit" style="background-color: #2563eb; border-color: #2563eb;">Register Evaluator Account</button>
+        <div id="evaluatorStatus" class="status-banner"></div>
+      </form>
+    </section>
+
     <!-- SECTION 3: ADMIN ACCESS PROVISIONING -->
     <section class="management-card">
       <h2>3. Create System Administrator</h2>
@@ -164,6 +181,21 @@
       if(ok) {
         document.getElementById('pName').value = '';
         document.getElementById('pNumber').value = '';
+      }
+    });
+
+    // Evaluator user registration handling (Collection: users)
+    document.getElementById('evaluatorForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('eName').value.trim(),
+        role: "evaluator",
+        password: document.getElementById('ePassword').value
+      };
+      const ok = await postToGateway("createUser", payload, "evaluatorStatus");
+      if(ok) {
+        document.getElementById('eName').value = '';
+        document.getElementById('ePassword').value = '';
       }
     });
 
