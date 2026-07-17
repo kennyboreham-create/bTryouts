@@ -8,129 +8,198 @@
 </head>
 <body class="bg-gray-100 min-h-screen text-gray-800">
 
-  <!-- Sticky Top Filter Bar -->
-  <header class="sticky top-0 bg-blue-900 text-white shadow-md z-50 px-4 py-3">
-    <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-      <h1 class="text-xl font-bold tracking-wide">⚡ Tryouts Input Portal</h1>
-      
-      <div class="flex gap-2 w-full sm:w-auto">
-        <select id="ageFilter" class="bg-blue-800 text-white border border-blue-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-1/2 sm:w-28">
-          <option value="">Select Age</option>
-          <option value="9U">9U</option>
-          <option value="11U">11U</option>
-          <option value="12U">12U</option>
-          <option value="13U">13U</option>
-          <option value="15U">15U</option>
-        </select>
-
-        <select id="tierFilter" class="bg-blue-800 text-white border border-blue-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-1/2 sm:w-32">
-          <option value="">Select Tier</option>
-          <option value="Tier 1">Tier 1</option>
-          <option value="Tier 2">Tier 2</option>
-          <option value="House League">House League</option>
-        </select>
+  <!-- LOGIN SCREEN LAYER -->
+  <div id="loginLayer" class="fixed inset-0 bg-blue-900 flex items-center justify-center p-4 z-[100]">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-blue-900">⚡ Tryouts Portal Login</h2>
+        <p class="text-gray-500 text-sm mt-1">Enter your registered credentials to proceed</p>
       </div>
-    </div>
-  </header>
-
-  <main class="max-w-4xl mx-auto p-4">
-    <!-- Main Input Form Card -->
-    <div class="bg-white rounded-lg shadow p-5 mb-6">
-      <form id="evaluationForm" class="space-y-6">
-        
-        <!-- Player Reference Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b pb-4">
-          <div>
-            <label class="block text-sm font-semibold uppercase text-gray-500 mb-1">Player # / Bib ID</label>
-            <input type="text" id="playerNumber" required placeholder="e.g. 42" class="w-full border-2 border-gray-300 rounded p-2 text-lg font-bold focus:border-blue-500 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold uppercase text-gray-500 mb-1">Evaluator Initials / Name</label>
-            <input type="text" id="evaluatorName" required placeholder="Coach Smith" class="w-full border-2 border-gray-300 rounded p-2 text-lg focus:border-blue-500 focus:outline-none">
-          </div>
-        </div>
-
-        <!-- Skills Matrix (1-10 Slider Grid) -->
+      
+      <form id="loginForm" class="space-y-4">
         <div>
-          <h3 class="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">Skills Matrix (Scores 1 to 10)</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            
-            <!-- Skill Template Generator via JS -->
-            <div class="skill-input flex flex-col gap-1">
-              <div class="flex justify-between font-medium">
-                <label for="skill_throwing">Throwing</label>
-                <span id="val_throwing" class="text-blue-600 font-bold">5</span>
-              </div>
-              <input type="range" id="skill_throwing" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-            </div>
-
-            <div class="skill-input flex flex-col gap-1">
-              <div class="flex justify-between font-medium">
-                <label for="skill_catching">Catching</label>
-                <span id="val_catching" class="text-blue-600 font-bold">5</span>
-              </div>
-              <input type="range" id="skill_catching" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-            </div>
-
-            <div class="skill-input flex flex-col gap-1">
-              <div class="flex justify-between font-medium">
-                <label for="skill_running">Running</label>
-                <span id="val_running" class="text-blue-600 font-bold">5</span>
-              </div>
-              <input type="range" id="skill_running" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-            </div>
-
-            <div class="skill-input flex flex-col gap-1">
-              <div class="flex justify-between font-medium">
-                <label for="skill_coachability">Coachability</label>
-                <span id="val_coachability" class="text-blue-600 font-bold">5</span>
-              </div>
-              <input type="range" id="skill_coachability" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-            </div>
-
-            <div class="skill-input flex flex-col gap-1">
-              <div class="flex justify-between font-medium">
-                <label for="skill_effort">Effort</label>
-                <span id="val_effort" class="text-blue-600 font-bold">5</span>
-              </div>
-              <input type="range" id="skill_effort" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-            </div>
-
-            <div class="skill-input flex flex-col gap-1">
-              <div class="flex justify-between font-medium">
-                <label for="skill_awareness">Awareness</label>
-                <span id="val_awareness" class="text-blue-600 font-bold">5</span>
-              </div>
-              <input type="range" id="skill_awareness" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-            </div>
-
-          </div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">Your Name / Identifier</label>
+          <input type="text" id="loginName" required placeholder="e.g. Coach Smith" class="w-full border-2 border-gray-300 rounded p-2 focus:border-blue-500 focus:outline-none">
         </div>
-
-        <!-- Evaluation Field Notes -->
-        <div class="pt-2">
-          <div class="flex justify-between text-sm font-bold uppercase text-gray-400 tracking-wider mb-1">
-            <label for="notes">Evaluator Field Notes</label>
-            <span id="wordCount">0 / 300 words</span>
-          </div>
-          <textarea id="notes" rows="4" maxlength="2000" placeholder="Type comments here (max 300 words)..." class="w-full border-2 border-gray-300 rounded p-2 focus:border-blue-500 focus:outline-none text-sm"></textarea>
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">Access Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full border-2 border-gray-300 rounded p-2 focus:border-blue-500 focus:outline-none">
         </div>
-
-        <!-- Submit Button Status Row -->
-        <div class="flex flex-col gap-2 pt-2">
-          <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded shadow transition duration-150 ease-in-out">
-            Submit Metric Entry
-          </button>
-          <div id="statusMsg" class="hidden text-center text-sm font-semibold p-2 rounded"></div>
-        </div>
-
+        <button type="submit" id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition">
+          Authorize Session
+        </button>
+        <div id="loginError" class="hidden text-center text-sm font-semibold bg-red-100 text-red-800 p-2 rounded"></div>
       </form>
     </div>
-  </main>
+  </div>
+
+  <!-- MAIN APP INTERFACE (Hidden by default until authorization) -->
+  <div id="appLayer" class="hidden">
+    <!-- Sticky Top Filter Bar -->
+    <header class="sticky top-0 bg-blue-900 text-white shadow-md z-50 px-4 py-3">
+      <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+        <h1 class="text-xl font-bold tracking-wide">⚡ Tryouts Input Portal</h1>
+        
+        <div class="flex gap-2 w-full sm:w-auto">
+          <select id="ageFilter" class="bg-blue-800 text-white border border-blue-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-1/2 sm:w-28">
+            <option value="">Select Age</option>
+            <option value="9U">9U</option>
+            <option value="11U">11U</option>
+            <option value="12U">12U</option>
+            <option value="13U">13U</option>
+            <option value="15U">15U</option>
+          </select>
+
+          <select id="tierFilter" class="bg-blue-800 text-white border border-blue-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-1/2 sm:w-32">
+            <option value="">Select Tier</option>
+            <option value="Tier 1">Tier 1</option>
+            <option value="Tier 2">Tier 2</option>
+            <option value="House League">House League</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4">
+      <!-- Main Input Form Card -->
+      <div class="bg-white rounded-lg shadow p-5 mb-6">
+        <form id="evaluationForm" class="space-y-6">
+          
+          <!-- Player Reference Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b pb-4">
+            <div>
+              <label class="block text-sm font-semibold uppercase text-gray-500 mb-1">Player # / Bib ID</label>
+              <input type="text" id="playerNumber" required placeholder="e.g. 42" class="w-full border-2 border-gray-300 rounded p-2 text-lg font-bold focus:border-blue-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold uppercase text-gray-500 mb-1">Active Evaluator</label>
+              <input type="text" id="evaluatorName" readonly class="w-full bg-gray-100 border-2 border-gray-200 rounded p-2 text-lg text-gray-600 outline-none font-medium">
+            </div>
+          </div>
+
+          <!-- Skills Matrix (1-10 Slider Grid) -->
+          <div>
+            <h3 class="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">Skills Matrix (Scores 1 to 10)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              
+              <div class="skill-input flex flex-col gap-1">
+                <div class="flex justify-between font-medium">
+                  <label for="skill_throwing">Throwing</label>
+                  <span id="val_throwing" class="text-blue-600 font-bold">5</span>
+                </div>
+                <input type="range" id="skill_throwing" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+              </div>
+
+              <div class="skill-input flex flex-col gap-1">
+                <div class="flex justify-between font-medium">
+                  <label for="skill_catching">Catching</label>
+                  <span id="val_catching" class="text-blue-600 font-bold">5</span>
+                </div>
+                <input type="range" id="skill_catching" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+              </div>
+
+              <div class="skill-input flex flex-col gap-1">
+                <div class="flex justify-between font-medium">
+                  <label for="skill_running">Running</label>
+                  <span id="val_running" class="text-blue-600 font-bold">5</span>
+                </div>
+                <input type="range" id="skill_running" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+              </div>
+
+              <div class="skill-input flex flex-col gap-1">
+                <div class="flex justify-between font-medium">
+                  <label for="skill_coachability">Coachability</label>
+                  <span id="val_coachability" class="text-blue-600 font-bold">5</span>
+                </div>
+                <input type="range" id="skill_coachability" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+              </div>
+
+              <div class="skill-input flex flex-col gap-1">
+                <div class="flex justify-between font-medium">
+                  <label for="skill_effort">Effort</label>
+                  <span id="val_effort" class="text-blue-600 font-bold">5</span>
+                </div>
+                <input type="range" id="skill_effort" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+              </div>
+
+              <div class="skill-input flex flex-col gap-1">
+                <div class="flex justify-between font-medium">
+                  <label for="skill_awareness">Awareness</label>
+                  <span id="val_awareness" class="text-blue-600 font-bold">5</span>
+                </div>
+                <input type="range" id="skill_awareness" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Evaluation Field Notes -->
+          <div class="pt-2">
+            <div class="flex justify-between text-sm font-bold uppercase text-gray-400 tracking-wider mb-1">
+              <label for="notes">Evaluator Field Notes</label>
+              <span id="wordCount">0 / 300 words</span>
+            </div>
+            <textarea id="notes" rows="4" maxlength="2000" placeholder="Type comments here (max 300 words)..." class="w-full border-2 border-gray-300 rounded p-2 focus:border-blue-500 focus:outline-none text-sm"></textarea>
+          </div>
+
+          <!-- Submit Button Status Row -->
+          <div class="flex flex-col gap-2 pt-2">
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded shadow transition duration-150 ease-in-out">
+              Submit Metric Entry
+            </button>
+            <div id="statusMsg" class="hidden text-center text-sm font-semibold p-2 rounded"></div>
+          </div>
+
+        </form>
+      </div>
+    </main>
+  </div>
 
   <script>
     // 1. Paste your Google Apps Script Web App URL here
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
+    const GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec";
+
+    // --- LOGIN HANDLER SEQUENCE ---
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const loginBtn = document.getElementById('loginBtn');
+      const loginError = document.getElementById('loginError');
+      
+      loginBtn.disabled = true;
+      loginBtn.innerText = "Verifying Identity...";
+      loginError.className = "hidden";
+
+      const loginPacket = {
+        action: "loginUser",
+        payload: {
+          name: document.getElementById('loginName').value.trim(),
+          password: document.getElementById('loginPassword').value
+        }
+      };
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify(loginPacket)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          // Grant access, populate identity, swap view sheets
+          document.getElementById('evaluatorName').value = result.name;
+          document.getElementById('loginLayer').classList.add('hidden');
+          document.getElementById('appLayer').classList.remove('hidden');
+        } else {
+          throw new Error(result.error || "Wrong credentials");
+        }
+      } catch (err) {
+        loginError.innerText = err.message.includes("Failed to fetch") ? "Connection Error. Check backend deploy." : err.message;
+        loginError.className = "block bg-red-100 text-red-800 text-center text-sm font-semibold p-2 rounded mt-2";
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Authorize Session";
+      }
+    });
 
     // Setup input dynamic value tracking labels
     const skills = ['throwing', 'catching', 'running', 'coachability', 'effort', 'awareness'];
@@ -165,12 +234,10 @@
         return;
       }
 
-      // Freeze interface UI during communication transit
       submitBtn.disabled = true;
       submitBtn.innerText = "Transmitting to Database...";
       statusMsg.className = "hidden";
 
-      // Collect data packet
       const dataPacket = {
         action: "submitEvaluation",
         payload: {
@@ -199,7 +266,6 @@
           statusMsg.innerText = `Success! Saved evaluation for Player #${dataPacket.payload.playerNumber}.`;
           statusMsg.className = "block bg-green-100 text-green-800 text-center text-sm font-semibold p-2 rounded";
           
-          // CRUCIAL: Clear input fields but preserve sticky filters and evaluator identity
           document.getElementById('playerNumber').value = '';
           textObj.value = '';
           document.getElementById('wordCount').innerText = "0 / 300 words";
