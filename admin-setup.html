@@ -9,11 +9,10 @@
     :root { --primary: #1e3a8a; }
     body { background-color: #f3f4f6; padding-top: 2rem; padding-bottom: 4rem; }
     .management-card { background: white; padding: 1.75rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 2.5rem; }
-    .management-card h2 { border-b: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.5rem; color: #1e3a8a; font-size: 1.5rem; }
+    .management-card h2 { border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.5rem; color: #1e3a8a; font-size: 1.5rem; }
     .status-banner { padding: 0.75rem; border-radius: 6px; font-weight: bold; font-size: 0.9rem; margin-top: 1rem; display: none; text-align: center; }
     .status-success { background-color: #d1fae5; color: #065f46; display: block; }
     .status-error { background-color: #fee2e2; color: #991b1b; display: block; }
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
   </style>
 </head>
 <body>
@@ -86,34 +85,34 @@
           </div>
         </div>
         <div>
-          <label for="cPassword">Portal Access Password</label>
-          <input type="password" id="cPassword" placeholder="••••••••" required>
+          <label for="cPassword">Portal Access Password (Auto-Generated)</label>
+          <input type="text" id="cPassword" placeholder="Auto-generates when name is entered" required>
         </div>
         <button type="submit" class="secondary">Register Coach Account</button>
         <div id="coachStatus" class="status-banner"></div>
       </form>
     </section>
 
-    <!-- SECTION: EVALUATOR REGISTRATION -->
+    <!-- SECTION 3: EVALUATOR REGISTRATION -->
     <section class="management-card">
-      <h2>Provision Evaluator Credentials</h2>
+      <h2>3. Provision Evaluator Credentials</h2>
       <form id="evaluatorForm">
         <div>
           <label for="eName">Evaluator Full Name</label>
           <input type="text" id="eName" placeholder="John Smith" required>
         </div>
         <div>
-          <label for="ePassword">Portal Access Password</label>
-          <input type="password" id="ePassword" placeholder="••••••••" required>
+          <label for="ePassword">Portal Access Password (Auto-Generated)</label>
+          <input type="text" id="ePassword" placeholder="Auto-generates when name is entered" required>
         </div>
         <button type="submit" style="background-color: #2563eb; border-color: #2563eb;">Register Evaluator Account</button>
         <div id="evaluatorStatus" class="status-banner"></div>
       </form>
     </section>
 
-    <!-- SECTION 3: ADMIN ACCESS PROVISIONING -->
+    <!-- SECTION 4: ADMIN ACCESS PROVISIONING -->
     <section class="management-card">
-      <h2>3. Create System Administrator</h2>
+      <h2>4. Create System Administrator</h2>
       <form id="adminForm">
         <div class="grid">
           <div>
@@ -121,8 +120,8 @@
             <input type="text" id="aName" placeholder="admin_master" required>
           </div>
           <div>
-            <label for="aPassword">Administrative Master Password</label>
-            <input type="password" id="aPassword" placeholder="••••••••" required>
+            <label for="aPassword">Administrative Master Password (Auto-Generated)</label>
+            <input type="text" id="aPassword" placeholder="Auto-generates when name is entered" required>
           </div>
         </div>
         <button type="submit" class="contrast">Generate Admin Privileges</button>
@@ -133,7 +132,39 @@
 
   <script>
     // 1. Paste your exact Google Apps Script URL here
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
+    const GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec";
+
+    // Strong Password Generator Helper
+    function generateStrongPassword() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789📡⚡🛠️🔥";
+      let password = "";
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    }
+
+    // Event Listeners to auto-fill password field ONLY when its corresponding name changes
+    document.getElementById('cName').addEventListener('change', function() {
+      const passField = document.getElementById('cPassword');
+      if (this.value.trim() && !passField.value) {
+        passField.value = generateStrongPassword();
+      }
+    });
+
+    document.getElementById('eName').addEventListener('change', function() {
+      const passField = document.getElementById('ePassword');
+      if (this.value.trim() && !passField.value) {
+        passField.value = generateStrongPassword();
+      }
+    });
+
+    document.getElementById('aName').addEventListener('change', function() {
+      const passField = document.getElementById('aPassword');
+      if (this.value.trim() && !passField.value) {
+        passField.value = generateStrongPassword();
+      }
+    });
 
     // Dynamic submission routing pipeline
     async function postToGateway(actionType, dataPayload, statusElementId) {
@@ -155,7 +186,7 @@
         const responseData = await response.json();
 
         if (responseData.success) {
-          statusEl.innerText = "Successfully saved entry into cluster database cluster.";
+          statusEl.innerText = "Successfully saved entry into database cluster.";
           statusEl.className = "status-banner status-success";
           return true;
         } else {
@@ -184,21 +215,6 @@
       }
     });
 
-    // Evaluator user registration handling (Collection: users)
-    document.getElementById('evaluatorForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const payload = {
-        name: document.getElementById('eName').value.trim(),
-        role: "evaluator",
-        password: document.getElementById('ePassword').value
-      };
-      const ok = await postToGateway("createUser", payload, "evaluatorStatus");
-      if(ok) {
-        document.getElementById('eName').value = '';
-        document.getElementById('ePassword').value = '';
-      }
-    });
-
     // Coach user registration handling (Collection: users)
     document.getElementById('coachForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -213,6 +229,21 @@
         document.getElementById('cName').value = '';
         document.getElementById('cPassword').value = '';
         document.getElementById('cTier').value = '';
+      }
+    });
+
+    // Evaluator user registration handling (Collection: users)
+    document.getElementById('evaluatorForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('eName').value.trim(),
+        role: "evaluator",
+        password: document.getElementById('ePassword').value
+      };
+      const ok = await postToGateway("createUser", payload, "evaluatorStatus");
+      if(ok) {
+        document.getElementById('eName').value = '';
+        document.getElementById('ePassword').value = '';
       }
     });
 
