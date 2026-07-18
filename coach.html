@@ -20,6 +20,17 @@
     .badge { display: inline-block; padding: 0.25rem 0.5rem; font-size: 0.8rem; font-weight: bold; border-radius: 4px; background: #e2e8f0; color: #334155; }
     .metric-avg { font-size: 1.15rem; font-weight: 800; color: #1e3a8a; }
     .no-data { font-style: italic; color: #94a3b8; font-size: 0.85rem; }
+
+    /* Interactive Table Styling */
+    .clickable-row { cursor: pointer; transition: background-color 0.15s ease; }
+    .clickable-row:hover { background-color: #f1f5f9 !important; }
+
+    /* Evaluation Card Breakdowns inside Modal */
+    .eval-breakdown-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; background: #fafafa; }
+    .eval-header { display: flex; justify-content: space-between; font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.25rem; }
+    .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; }
+    .skill-pill { background: #fff; border: 1px solid #cbd5e1; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; display: flex; justify-content: space-between; }
+    .skill-pill strong { color: #1e3a8a; }
   </style>
 </head>
 <body>
@@ -54,6 +65,7 @@
         <div>
           <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">Tryout Roster Evaluator Metrics</h1>
           <p style="color: #64748b; margin-bottom: 0;">Welcome, <span id="displayCoachName" style="font-weight:bold; color:#1e3a8a;"></span> | Filter Range: <mark id="displayScopeFilter"></mark></p>
+          <small style="color: #94a3b8;">💡 Click on any player row below to see their full skill breakdowns.</small>
         </div>
         <button onclick="window.location.reload()" class="outline contrast" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
       </header>
@@ -82,11 +94,28 @@
     </main>
   </div>
 
+  <!-- EVALUATION BREAKDOWN MODAL DIALOG -->
+  <dialog id="evaluationModal">
+    <article style="max-width: 600px; width: 100%;">
+      <header>
+        <a href="#close" aria-label="Close" class="close" onclick="closeEvalModal()" style="float: right;"></a>
+        <h3 style="margin-bottom: 0;" id="modalPlayerTitle">Player Breakdown</h3>
+      </header>
+      <div id="modalContentBody" style="max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
+        <!-- Dynamic Evaluation Sheets Populated Here -->
+      </div>
+      <footer>
+        <button class="secondary" onclick="closeEvalModal()" style="margin-bottom: 0;">Close View</button>
+      </footer>
+    </article>
+  </dialog>
+
   <script>
-    // 1. Paste your exact Google Apps Script Web App URL endpoint below
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
 
     let coachSessionContext = { age: "All", tier: "All" };
+    let globalPlayersCache = [];
+    let globalEvaluationsCache = [];
 
     // --- INTERACTIVE AUTHENTICATION GATEWAY ---
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -140,61 +169,59 @@
     });
 
     // --- METRIC SYSTEM AGGREGATION ENGINE ---
-  async function loadCoachRosterDashboard() {
-    const tableBody = document.getElementById('rosterTableBody');
-    
-    try {
-      const [playersResponse, evaluationsResponse] = await Promise.all([
-        fetch(GAS_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "getPlayers",
-            payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+    async function loadCoachRosterDashboard() {
+      const tableBody = document.getElementById('rosterTableBody');
+      
+      try {
+        const [playersResponse, evaluationsResponse] = await Promise.all([
+          fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "getPlayers",
+              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+            })
+          }),
+          fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "getEvaluations",
+              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+            })
           })
-        }),
-        fetch(GAS_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "getEvaluations",
-            payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
-          })
-        })
-      ]);
+        ]);
 
-      const playersData = await playersResponse.json();
-      const evaluationsData = await evaluationsResponse.json();
+        const playersData = await playersResponse.json();
+        const evaluationsData = await evaluationsResponse.json();
 
-      if (!playersData.success || !evaluationsData.success) {
-        throw new Error("Data compilation pipeline exception received from database API.");
-      }
+        if (!playersData.success || !evaluationsData.success) {
+          throw new Error("Data compilation pipeline exception received from database API.");
+        }
 
-      const playerList = playersData.players || [];
-      const evaluationsList = evaluationsData.evaluations || [];
+        // Cache globally so the modal popup can read data without hitting the database again
+        globalPlayersCache = playersData.players || [];
+        globalEvaluationsCache = evaluationsData.evaluations || [];
 
-      if (playerList.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; font-style: italic;">No tryout player rosters match your current visibility scope range filters.</td></tr>';
-        return;
-      }
+        if (globalPlayersCache.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; font-style: italic;">No tryout player rosters match your current visibility scope range filters.</td></tr>';
+          return;
+        }
 
-      tableBody.innerHTML = "";
+        tableBody.innerHTML = "";
 
-      playerList.forEach(function(player) {
-        // --- MATCHING LOGIC FIX ---
-        // Look specifically for evaluation documents matching this player's number, age group, AND tier level
-        const matchingEvals = evaluationsList.filter(function(ev) {
-          return ev.playerNumber === player.playerNumber && 
-                 ev.age === player.age && 
-                 ev.tier === player.tier;
-        });
+        globalPlayersCache.forEach(function(player) {
+          const matchingEvals = globalEvaluationsCache.filter(function(ev) {
+            return ev.playerNumber === player.playerNumber && 
+                   ev.age === player.age && 
+                   ev.tier === player.tier;
+          });
 
-        let aggregateAverageDisplay = '<span class="no-data">Unrated</span>';
-        
-        if (matchingEvals.length > 0) {
-          let runningSumScore = 0;
-          let numericFieldsLoggedCount = 0;
+          let aggregateAverageDisplay = '<span class="no-data">Unrated</span>';
+          
+          if (matchingEvals.length > 0) {
+            let runningSumScore = 0;
+            let numericFieldsLoggedCount = 0;
 
           matchingEvals.forEach(function(evaluation) {
-            // Read data directly from the dynamic nested skills sub-object in the evaluations collection
             const activeSkillsObj = evaluation.skills || {};
             for (const key in activeSkillsObj) {
               if (activeSkillsObj.hasOwnProperty(key)) {
@@ -207,27 +234,102 @@
             }
           });
 
-          if (numericFieldsLoggedCount > 0) {
-            const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
-            aggregateAverageDisplay = '<span class="metric-avg">' + absoluteAvg + '</span> <small style="color:#64748b;">(' + matchingEvals.length + ' evals)</small>';
+            if (numericFieldsLoggedCount > 0) {
+              const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
+              aggregateAverageDisplay = '<span class="metric-avg">' + absoluteAvg + '</span> <small style="color:#64748b;">(' + matchingEvals.length + ' evals)</small>';
+            }
           }
-        }
 
-        const rowHtml = '<tr>' +
-          '<td><strong>#' + player.playerNumber + '</strong></td>' +
-          '<td>' + player.name + '</td>' +
-          '<td><span class="badge">' + player.age + '</span></td>' +
-          '<td><span class="badge" style="background-color:#dbeafe; color:#1e40af;">' + player.tier + '</span></td>' +
-          '<td style="text-align: center; vertical-align: middle;">' + aggregateAverageDisplay + '</td>' +
-          '</tr>';
-          
-        tableBody.insertAdjacentHTML('beforeend', rowHtml);
-      });
+          // Build row with click bindings and tracking data properties
+          const rowHtml = '<tr class="clickable-row" onclick="openEvalModal(\'' + player.playerNumber + '\', \'' + player.age + '\', \'' + player.tier + '\')">' +
+            '<td><strong>#' + player.playerNumber + '</strong></td>' +
+            '<td>' + player.name + '</td>' +
+            '<td><span class="badge">' + player.age + '</span></td>' +
+            '<td><span class="badge" style="background-color:#dbeafe; color:#1e40af;">' + player.tier + '</span></td>' +
+            '<td style="text-align: center; vertical-align: middle;">' + aggregateAverageDisplay + '</td>' +
+            '</tr>';
+            
+          tableBody.insertAdjacentHTML('beforeend', rowHtml);
+        });
 
-    } catch (err) {
-      tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #991b1b; font-weight: bold;">Roster Compilation Failure: ' + err.message + '</td></tr>';
+      } catch (err) {
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #991b1b; font-weight: bold;">Roster Compilation Failure: ' + err.message + '</td></tr>';
+      }
     }
-  }
+
+    // --- MODAL INTERACTION LOGIC ---
+    function openEvalModal(playerNumber, age, tier) {
+      const modal = document.getElementById('evaluationModal');
+      const title = document.getElementById('modalPlayerTitle');
+      const content = document.getElementById('modalContentBody');
+
+      // Find player profile object details from cache
+      const player = globalPlayersCache.find(p => p.playerNumber === playerNumber && p.age === age && p.tier === tier);
+      if (!player) return;
+
+      title.innerText = player.name + " (#" + player.playerNumber + ") - Evaluation Breakdown";
+      
+      // Filter out evaluation items specific to this exact player group scope context
+      const evals = globalEvaluationsCache.filter(ev => 
+        ev.playerNumber === playerNumber && ev.age === age && ev.tier === tier
+      );
+
+      if (evals.length === 0) {
+        content.innerHTML = '<p style="text-align:center; font-style:italic; padding: 2rem 0; color:#64748b;">No individual evaluation entry logs available for this player profile yet.</p>';
+      } else {
+        let htmlContent = "";
+        
+        evals.forEach((ev, index) => {
+          // Format Timestamp cleanly
+          const evalDate = ev.timestamp ? new Date(ev.timestamp).toLocaleDateString() : 'N/A';
+          
+          htmlContent += '<div class="eval-breakdown-card">';
+          htmlContent += '  <div class="eval-header">';
+          htmlContent += '    <span><strong>Evaluator Key:</strong> ' + (ev.evaluatorId || 'Anonymous') + '</span>';
+          htmlContent += '    <span><strong>Date:</strong> ' + evalDate + '</span>';
+          htmlContent += '  </div>';
+          
+          // Render individual skill points matrix pills
+          htmlContent += '  <div class="skill-grid">';
+          const skillsObj = ev.skills || {};
+          let totalSkillsFound = 0;
+          
+          for (const skillName in skillsObj) {
+            if (skillsObj.hasOwnProperty(skillName)) {
+              totalSkillsFound++;
+              // Capitalize first letters of skill name labels nicely
+              const cleanSkillLabel = skillName.charAt(0).toUpperCase() + skillName.slice(1);
+              htmlContent += '    <div class="skill-pill">' + cleanSkillLabel + ': <strong>' + skillsObj[skillName] + '</strong></div>';
+            }
+          }
+          
+          if (totalSkillsFound === 0) {
+            htmlContent += '    <div style="font-size:0.85rem; font-style:italic; color:#94a3b8;">No quantitative attributes rated.</div>';
+          }
+          
+          htmlContent += '  </div>';
+          
+          // Render notes column seamlessly if filled out by reviewer
+          const noteText = ev.notes ? ev.notes.trim() : "";
+          if (noteText) {
+            htmlContent += '  <div style="font-size: 0.85rem; background: #fff; padding: 0.5rem; border-left: 3px solid #1e3a8a; color: #475569; margin-top: 0.5rem;">';
+            htmlContent += '    <strong>Notes:</strong> "' + noteText + '"';
+            htmlContent += '  </div>';
+          }
+          
+          htmlContent += '</div>';
+        });
+        
+        content.innerHTML = htmlContent;
+      }
+
+      // Display the modal via Pico CSS standard interaction attribute toggles
+      modal.setAttribute('open', 'true');
+    }
+
+    function closeEvalModal() {
+      document.getElementById('evaluationModal').removeAttribute('open');
+    }
   </script>
 </body>
 </html>
