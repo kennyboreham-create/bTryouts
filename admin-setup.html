@@ -23,7 +23,7 @@
 <body>
 
   <!-- ADMIN SECURITY GATEWAY LAYER -->
-  <div id="loginLayer" class="login-overlay">
+  <div id="loginLayer" class="login-overlay hidden">
     <div class="login-card">
       <div style="text-align: center; margin-bottom: 1.5rem;">
         <h2 style="color: #1e3a8a; margin-bottom: 0.25rem;">🔐 Admin Console Secure Login</h2>
@@ -45,9 +45,18 @@
     </div>
   </div>
 
-  <!-- MAIN CONFIGURATION APP INTERFACE (Hidden by default until authorization) -->
+  <!-- MAIN CONFIGURATION APP INTERFACE -->
   <div id="appLayer" class="hidden">
-    <main class="container" style="max-width: 900px;">
+    <div style="background-color: #0f172a; color: #f8fafc; padding: 0.5rem 1.5rem; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace;">
+      <div>
+        🏢 <span id="uiHeaderOrgName" style="font-weight: bold; color: #38bdf8;"></span> 
+        <span style="color: #64748b; margin: 0 0.5rem;">|</span> 
+        👤 Active Admin: <span id="uiHeaderUserName" style="color: #f1f5f9;"></span>
+      </div>
+      <button onclick="handleLogout()" class="outline contrast" style="margin-bottom: 0; padding: 0.25rem 0.75rem; font-size: 0.75rem; border-color: #475569;">Log Out</button>
+    </div>
+
+    <main class="container" style="max-width: 900px; margin-top: 1.5rem;">
       <header style="margin-bottom: 2rem; text-align: center;">
         <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">🛠️ Data Management Center</h1>
         <p style="color: #64748b;">Provision system rosters, coaching tiers, and administrative keys</p>
@@ -174,8 +183,29 @@
   </div>
 
   <script>
-    // 1. Paste your exact Google Apps Script URL here
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
+
+    // --- SYSTEM SESSION PERSISTENCE CHECK ---
+    const currentOrgId = localStorage.getItem('orgId');
+    const currentOrgName = localStorage.getItem('orgName');
+    const currentUserName = localStorage.getItem('userName');
+    const currentUserRole = localStorage.getItem('userRole');
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // Security Check: Instantly kick out to index if properties are incorrect or missing
+      if (!currentOrgId || !currentUserName || currentUserRole !== 'admin') {
+        localStorage.removeItem('userRole');
+        window.location.href = "index.html";
+        return;
+      }
+
+      // Hydrate SaaS interface metrics instantly
+      document.getElementById('uiHeaderOrgName').innerText = currentOrgName;
+      document.getElementById('uiHeaderUserName').innerText = currentUserName;
+      
+      // Reveal management interface
+      document.getElementById('appLayer').classList.remove('hidden');
+    });
 
     // --- ADMINISTRATIVE GATEWAY AUTHORIZATION ---
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -193,10 +223,11 @@
           body: JSON.stringify({
             action: "loginUser",
             payload: {
+              orgId: currentOrgId,
               name: document.getElementById('loginName').value.trim(),
               password: document.getElementById('loginPassword').value
             }
-          })
+          }
         });
         const result = await response.json();
 
@@ -204,6 +235,13 @@
           if (result.role !== "admin") {
             throw new Error("Access Denied: Your account role lacks clearance parameters.");
           }
+
+          localStorage.setItem('userRole', 'admin');
+          localStorage.setItem('userName', document.getElementById('loginName').value.trim());
+          
+          document.getElementById('uiHeaderOrgName').innerText = currentOrgName;
+          document.getElementById('uiHeaderUserName').innerText = localStorage.getItem('userName');
+
           document.getElementById('loginLayer').classList.add('hidden');
           document.getElementById('appLayer').classList.remove('hidden');
         } else {
@@ -251,10 +289,13 @@
       statusEl.innerText = "Transmitting to cloud architecture...";
       statusEl.style.display = "block";
 
+      // Append multi-tenant context boundary protection
+      const contextPayload = { ...dataPayload, orgId: currentOrgId };
+
       try {
         const response = await fetch(GAS_URL, {
           method: "POST",
-          body: JSON.stringify({ action: actionType, payload: dataPayload })
+          body: JSON.stringify({ action: actionType, payload: contextPayload })
         });
         const responseData = await response.json();
 
@@ -313,7 +354,7 @@
       const payload = {
         name: document.getElementById('eName').value.trim(),
         role: "evaluator",
-        age: "All", // <-- ADDED EXPLICIT DEFAULT AGE VALUE
+        age: "All", 
         tier: "All",
         password: document.getElementById('ePassword').value
       };
@@ -330,7 +371,7 @@
       const payload = {
         name: document.getElementById('aName').value.trim(),
         role: "admin",
-        age: "All", // <-- ADDED EXPLICIT DEFAULT AGE VALUE
+        age: "All", 
         tier: "All",
         password: document.getElementById('aPassword').value
       };
@@ -340,6 +381,11 @@
         document.getElementById('aPassword').value = '';
       }
     });
+
+    function handleLogout() {
+      localStorage.removeItem('userRole');
+      window.location.href = "index.html";
+    }
   </script>
 </body>
 </html>
