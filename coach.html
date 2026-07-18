@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coach Tryout Review Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+  <style>
+    :root { --primary: #1e3a8a; }
+    body { background-color: #f3f4f6; padding-top: 2rem; padding-bottom: 4rem; }
+    .portal-card { background: white; padding: 1.75rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 2.5rem; }
+    .portal-card h2 { border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.5rem; color: #1e3a8a; font-size: 1.5rem; }
+    .status-banner { padding: 0.75rem; border-radius: 6px; font-weight: bold; font-size: 0.9rem; margin-top: 1rem; display: none; text-align: center; }
+    .status-error { background-color: #fee2e2; color: #991b1b; display: block; }
+    
+    /* Login screen styling overlay configuration layout */
+    .login-overlay { position: fixed; inset: 0; background: #1e3a8a; display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 1000; }
+    .login-card { background: white; padding: 2rem; border-radius: 8px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .hidden { display: none !important; }
+    
+    .badge { display: inline-block; padding: 0.25rem 0.5rem; font-size: 0.8rem; font-weight: bold; border-radius: 4px; background: #e2e8f0; color: #334155; }
+    .metric-avg { font-size: 1.15rem; font-weight: 800; color: #1e3a8a; }
+    .no-data { font-style: italic; color: #94a3b8; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <!-- COACH SECURITY LOGGATE LAYER -->
+  <div id="loginLayer" class="login-overlay">
+    <div class="login-card">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="color: #1e3a8a; margin-bottom: 0.25rem;">📋 Coach Portal Secure Login</h2>
+        <p style="color: #64748b; font-size: 0.9rem;">Enter authorized coach access profiles parameters</p>
+      </div>
+      
+      <form id="loginForm">
+        <label for="loginName">Coach Name Identifier</label>
+        <input type="text" id="loginName" required placeholder="e.g. Coach Miller">
+        
+        <label for="loginPassword">Access Password</label>
+        <input type="password" id="loginPassword" required placeholder="••••••••">
+        
+        <button type="submit" id="loginBtn" class="primary" style="width: 100%; margin-top: 0.5rem;">
+          Verify Coaching Credentials
+        </button>
+        <div id="loginError" class="status-banner status-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN ROSTER REVIEW LAYER -->
+  <div id="appLayer" class="hidden">
+    <main class="container">
+      <header style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">⚾ Tryout Roster Evaluator Metrics</h1>
+          <p style="color: #64748b; margin-bottom: 0;">Welcome, <span id="displayCoachName" style="font-weight:bold; color:#1e3a8a;"></span> | Filter Range: <mark id="displayScopeFilter"></mark></p>
+        </div>
+        <button onclick="window.location.reload()" class="outline contrast" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
+      </header>
+
+      <section class="portal-card">
+        <h2>Assigned Scope Player Dashboard</h2>
+        <div style="overflow-x: auto;">
+          <table role="grid">
+            <thead>
+              <tr>
+                <th>Bib #</th>
+                <th>Player Name</th>
+                <th>Age Group</th>
+                <th>Assigned Level</th>
+                <th style="text-align: center;">Running Tryout Score Avg</th>
+              </tr>
+            </thead>
+            <tbody id="rosterTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: #64748b;">Assembling team matrix metrics...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // 1. Paste your exact Google Apps Script Web App URL endpoint below
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
+
+    let coachSessionContext = { age: "All", tier: "All" };
+
+    // --- INTERACTIVE AUTHENTICATION GATEWAY ---
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      const errorDiv = document.getElementById('loginError');
+      
+      btn.disabled = true;
+      btn.innerText = "Authorizing App Layer Signatures...";
+      errorDiv.style.display = "none";
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "loginUser",
+            payload: {
+              name: document.getElementById('loginName').value.trim(),
+              password: document.getElementById('loginPassword').value
+            }
+          })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          // Rule Engine Validation Gate Check: Only permit if role context maps to coach parameter
+          if (result.role !== "coach") {
+            throw new Error("Access Denied: Account type mismatch. Administrative or evaluator permissions flagged on this dashboard.");
+          }
+          
+          coachSessionContext.age = result.age || "All";
+          coachSessionContext.tier = result.tier || "All";
+          
+          document.getElementById('displayCoachName').innerText = document.getElementById('loginName').value.trim();
+          document.getElementById('displayScopeFilter').innerText = `${coachSessionContext.age} - ${coachSessionContext.tier}`;
+          
+          // Switch view models
+          document.getElementById('loginLayer').classList.add('hidden');
+          document.getElementById('appLayer').classList.remove('hidden');
+          
+          // Execute Roster Analysis Matrix Ingestion Pipeline Sequence
+          await loadCoachRosterDashboard();
+
+        } else {
+          throw new Error(result.error || "Wrong credentials");
+        }
+      } catch (err) {
+        errorDiv.innerText = err.message;
+        errorDiv.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Verify Coaching Credentials";
+      }
+    });
+
+    // --- METRIC SYSTEM AGGREGATION ENGINE ---
+    async function loadCoachRosterDashboard() {
+      const tableBody = document.getElementById('rosterTableBody');
+      
+      try {
+        // Step 1: Concurrent query fetching for players and evaluations array pools
+        const [playersResponse, evaluationsResponse] = await Promise.all([
+          fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "getPlayers",
+              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+            })
+          }),
+          fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "getEvaluations",
+              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+            })
+          })
+        ]);
+
+        const playersData = await playersResponse.json();
+        const evaluationsData = await evaluationsResponse.json();
+
+        if (!playersData.success || !evaluationsData.success) {
+          throw new Error("Data compilation pipeline exception received from standard database API endpoint.");
+        }
+
+        const playerList = playersData.players || [];
+        const evaluationsList = evaluationsData.evaluations || [];
+
+        if (playerList.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; font-style: italic;">No tryout player rosters matches your current visibility range scope mapping filters.</td></tr>`;
+          return;
+        }
+
+        // Clean out rendering table mapping rows
+        tableBody.innerHTML = "";
+
+        // Step 2: Correlate and calculate metrics for every parsed player document row loop entry
+        playerList.forEach(player => {
+          // Track evaluations matching on bib or combinations
+          const matchingEvals = evaluationsList.filter(eval => 
+            eval.playerNumber === player.playerNumber && 
+            eval.age === player.age
+          );
+
+          let aggregateAverageDisplay = `<span class="no-data">Unrated</span>`;
+          
+          if (matchingEvals.length > 0) {
+            let runningSumScore = 0;
+            let numericFieldsLoggedCount = 0;
+
+            matchingEvals.forEach(evaluation => {
+              // Extract dynamically scaled scoring attributes, removing system descriptors
+              for (const [key, val] of Object.entries(evaluation)) {
+                if (key !== '_id' && key !== 'name' && key !== 'playerNumber' && key !== 'age' && key !== 'tier' && key !== 'submittedAt') {
+                  const scoreValue = parseFloat(val);
+                  if (!isNaN(scoreValue)) {
+                    runningSumScore += scoreValue;
+                    numericFieldsLoggedCount++;
+                  }
+                }
+              });
+            });
+
+            if (numericFieldsLoggedCount > 0) {
+              const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
+              aggregateAverageDisplay = `<span class="metric-avg">${absoluteAvg}</span> <small style="color:#64748b;">(${matchingEvals.length} evaluations)</small>`;
+            }
+          }
+
+          // Step 3: Append structural node elements cleanly to the layout template pattern
+          const rowHtml = `
+            <tr>
+              <td><strong>#${player.playerNumber}</strong></td>
+              <td>${player.name}</td>
+              <td><span class="badge">${player.age}</span></td>
+              <td><span class="badge" style="background-color:#dbeafe; color:#1e40af;">${player.tier}</span></td>
+              <td style="text-align: center; vertical-align: middle;">${aggregateAverageDisplay}</td>
+            </tr>
+          `;
+          tableBody.insertAdjacentHTML('beforeend', rowHtml);
+        });
+
+      } catch (err) {
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #991b1b; font-weight: bold;">Roster Compilation Failure: ${err.message}</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>
