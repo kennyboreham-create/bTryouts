@@ -412,37 +412,64 @@
     }
 
     // --- LIVE DECISION STATE MUTATION ENGINE ---
-    function updatePlayerStatus(playerIndex, newStatus) {
+    async function updatePlayerStatus(playerIndex, newStatus) {
       if (playerIndex < 0 || playerIndex >= globalPlayersCache.length) return;
       
-      let player = globalPlayersCache[playerIndex];
-      player.status = newStatus;
+      const player = globalPlayersCache[playerIndex];
+      const originalStatus = player.status;
+      const originalTier = player.tier;
 
-      // Handle structural Tier Demotion cascades automatically on Release action fires
+      // 1. Calculate new status and tier locally
+      let targetStatus = newStatus;
+      let targetTier = player.tier;
+
       if (newStatus === "released") {
         let currentTierStr = player.tier.toLowerCase();
-        
-        // Dynamic matching filters looking for patterns like "Tier 1", "Tier1", or "1"
         if (currentTierStr.includes("1")) {
-          player.tier = player.tier.replace("1", "2");
+          targetTier = player.tier.replace("1", "2");
         } else if (currentTierStr.includes("2")) {
-          player.tier = player.tier.replace("2", "3");
+          targetTier = player.tier.replace("2", "3");
         } else {
-          // Fallback parsing strategy logic if explicit tier numbers aren't caught
-          if (player.tier === "Tier 1") player.tier = "Tier 2";
-          else if (player.tier === "Tier 2") player.tier = "Tier 3";
+          if (player.tier === "Tier 1") targetTier = "Tier 2";
+          else if (player.tier === "Tier 2") targetTier = "Tier 3";
         }
       }
 
-      // Re-render core table row UI elements instantly
-      renderRosterTable();
-      
-      // Close viewport sequence completes step workflow
-      closeEvalModal();
-    }
+      // Optional: Add basic UI loading state inside the button panel if desired
+      try {
+        // 2. Sync changes to the database backend
+        const response = await fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "updatePlayerStatus",
+            payload: {
+              playerNumber: player.playerNumber,
+              age: player.age,
+              currentTier: originalTier, // sending old tier to find the record easily if needed
+              newStatus: targetStatus,
+              newTier: targetTier
+            }
+          })
+        });
 
-    function closeEvalModal() {
-      document.getElementById('evaluationModal').removeAttribute('open');
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || "Database sync failed.");
+        }
+
+        // 3. Update local cache only after successful DB modification
+        player.status = targetStatus;
+        player.tier = targetTier;
+
+        // 4. Re-render UI elements instantly
+        renderRosterTable();
+        closeEvalModal();
+
+      } catch (err) {
+        alert("⚠️ Failed to update player database: " + err.message);
+        console.error("Database sync error:", err);
+      }
     }
   </script>
 </body>
