@@ -435,7 +435,6 @@
         }
       }
 
-      // Optional: Add basic UI loading state inside the button panel if desired
       try {
         // 2. Sync changes to the database backend
         const response = await fetch(GAS_URL, {
@@ -445,7 +444,7 @@
             payload: {
               playerNumber: player.playerNumber,
               age: player.age,
-              currentTier: originalTier, // sending old tier to find the record easily if needed
+              currentTier: originalTier,
               newStatus: targetStatus,
               newTier: targetTier
             }
@@ -464,7 +463,7 @@
 
         // 4. Re-render UI elements instantly
         renderRosterTable();
-        closeEvalModal();
+        closeEvalModal(); // <-- Verified matching function name execution target
 
       } catch (err) {
         alert("⚠️ Failed to update player database: " + err.message);
