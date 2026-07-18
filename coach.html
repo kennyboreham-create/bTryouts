@@ -21,9 +21,19 @@
     .metric-avg { font-size: 1.15rem; font-weight: 800; color: #1e3a8a; }
     .no-data { font-style: italic; color: #94a3b8; font-size: 0.85rem; }
 
+    /* Tryout Status Labels */
+    .status-pill-ongoing { background-color: #fef3c7; color: #92400e; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+    .status-pill-selected { background-color: #d1fae5; color: #065f46; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+    .status-pill-released { background-color: #fee2e2; color: #991b1b; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+
     /* Interactive Table Styling */
     .clickable-row { cursor: pointer; transition: background-color 0.15s ease; }
     .clickable-row:hover { background-color: #f1f5f9 !important; }
+
+    /* Modal Action Controls */
+    .action-panel { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 6px; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .action-btn-group { display: flex; gap: 0.5rem; margin-bottom: 0; }
+    .action-btn-group button { margin-bottom: 0; padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: bold; }
 
     /* Modal Structure Additions */
     .summary-section { background: #eff6ff; border: 1px solid #bfdbfe; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; }
@@ -70,7 +80,7 @@
         <div>
           <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">Tryout Roster Evaluator Metrics</h1>
           <p style="color: #64748b; margin-bottom: 0;">Welcome, <span id="displayCoachName" style="font-weight:bold; color:#1e3a8a;"></span> | Filter Range: <mark id="displayScopeFilter"></mark></p>
-          <small style="color: #94a3b8;">💡 Click on any player row below to see their full skill breakdowns.</small>
+          <small style="color: #94a3b8;">💡 Click on any player row below to access review breakdowns and change roster status permissions.</small>
         </div>
         <button onclick="window.location.reload()" class="outline contrast" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
       </header>
@@ -86,11 +96,12 @@
                 <th>Age Group</th>
                 <th>Assigned Level</th>
                 <th style="text-align: center;">Running Tryout Score Avg</th>
+                <th style="text-align: center;">Tryout Status</th>
               </tr>
             </thead>
             <tbody id="rosterTableBody">
               <tr>
-                <td colspan="5" style="text-align: center; color: #64748b;">Assembling team matrix metrics...</td>
+                <td colspan="6" style="text-align: center; color: #64748b;">Assembling team matrix metrics...</td>
               </tr>
             </tbody>
           </table>
@@ -107,7 +118,7 @@
         <h3 style="margin-bottom: 0;" id="modalPlayerTitle">Player Breakdown</h3>
       </header>
       <div id="modalContentBody" style="max-height: 450px; overflow-y: auto; padding-right: 0.5rem;">
-        <!-- Dynamic Summary and Evaluation Sheets Populated Here -->
+        <!-- Dynamic Actions, Summary and Evaluation Sheets Populated Here -->
       </div>
       <footer>
         <button class="secondary" onclick="closeEvalModal()" style="margin-bottom: 0;">Close View</button>
@@ -202,137 +213,171 @@
           throw new Error("Data compilation pipeline exception received from database API.");
         }
 
-        globalPlayersCache = playersData.players || [];
+        // Initialize state fields locally if they don't exist yet on the server objects
+        globalPlayersCache = (playersData.players || []).map(p => ({
+          ...p,
+          status: p.status || "ongoing" // default baseline state assignment
+        }));
+        
         globalEvaluationsCache = evaluationsData.evaluations || [];
 
-        if (globalPlayersCache.length === 0) {
-          tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; font-style: italic;">No tryout player rosters match your current visibility scope range filters.</td></tr>';
-          return;
-        }
-
-        tableBody.innerHTML = "";
-
-        globalPlayersCache.forEach(function(player) {
-          const matchingEvals = globalEvaluationsCache.filter(function(ev) {
-            return ev.playerNumber === player.playerNumber && 
-                   ev.age === player.age && 
-                   ev.tier === player.tier;
-          });
-
-          let aggregateAverageDisplay = '<span class="no-data">Unrated</span>';
-          
-          if (matchingEvals.length > 0) {
-            let runningSumScore = 0;
-            let numericFieldsLoggedCount = 0;
-
-            matchingEvals.forEach(function(evaluation) {
-              const activeSkillsObj = evaluation.skills || {};
-              for (const key in activeSkillsObj) {
-                if (activeSkillsObj.hasOwnProperty(key)) {
-                  const scoreValue = parseFloat(activeSkillsObj[key]);
-                  if (!isNaN(scoreValue)) {
-                    runningSumScore += scoreValue;
-                    numericFieldsLoggedCount++;
-                  }
-                }
-              }
-            });
-
-            if (numericFieldsLoggedCount > 0) {
-              const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
-              aggregateAverageDisplay = '<span class="metric-avg">' + absoluteAvg + '</span> <small style="color:#64748b;">(' + matchingEvals.length + ' evals)</small>';
-            }
-          }
-
-          const rowHtml = '<tr class="clickable-row" onclick="openEvalModal(\'' + player.playerNumber + '\', \'' + player.age + '\', \'' + player.tier + '\')">' +
-            '<td><strong>#' + player.playerNumber + '</strong></td>' +
-            '<td>' + player.name + '</td>' +
-            '<td><span class="badge">' + player.age + '</span></td>' +
-            '<td><span class="badge" style="background-color:#dbeafe; color:#1e40af;">' + player.tier + '</span></td>' +
-            '<td style="text-align: center; vertical-align: middle;">' + aggregateAverageDisplay + '</td>' +
-            '</tr>';
-            
-          tableBody.insertAdjacentHTML('beforeend', rowHtml);
-        });
+        renderRosterTable();
 
       } catch (err) {
-        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #991b1b; font-weight: bold;">Roster Compilation Failure: ' + err.message + '</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #991b1b; font-weight: bold;">Roster Compilation Failure: ' + err.message + '</td></tr>';
       }
     }
 
+    // --- DOM RENDER REFRESH LOOP ---
+    function renderRosterTable() {
+      const tableBody = document.getElementById('rosterTableBody');
+      if (globalPlayersCache.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; font-style: italic;">No tryout player rosters match your current visibility scope range filters.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = "";
+
+      globalPlayersCache.forEach(function(player) {
+        const matchingEvals = globalEvaluationsCache.filter(function(ev) {
+          return ev.playerNumber === player.playerNumber && 
+                 ev.age === player.age;
+        });
+
+        let aggregateAverageDisplay = '<span class="no-data">Unrated</span>';
+        
+        if (matchingEvals.length > 0) {
+          let runningSumScore = 0;
+          let numericFieldsLoggedCount = 0;
+
+          matchingEvals.forEach(function(evaluation) {
+            const activeSkillsObj = evaluation.skills || {};
+            for (const key in activeSkillsObj) {
+              if (activeSkillsObj.hasOwnProperty(key)) {
+                const scoreValue = parseFloat(activeSkillsObj[key]);
+                if (!isNaN(scoreValue)) {
+                  runningSumScore += scoreValue;
+                  numericFieldsLoggedCount++;
+                }
+              }
+            }
+          });
+
+          if (numericFieldsLoggedCount > 0) {
+            const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
+            aggregateAverageDisplay = '<span class="metric-avg">' + absoluteAvg + '</span> <small style="color:#64748b;">(' + matchingEvals.length + ' evals)</small>';
+          }
+        }
+
+        // Build status pill markup dynamically
+        let statusHtml = '<span class="status-pill-ongoing">Ongoing</span>';
+        if (player.status === "selected") {
+          statusHtml = '<span class="status-pill-selected">Selected</span>';
+        } else if (player.status === "released") {
+          statusHtml = '<span class="status-pill-released">Released</span>';
+        }
+
+        const rowHtml = '<tr class="clickable-row" onclick="openEvalModal(\'' + player.playerNumber + '\', \'' + player.age + '\', \'' + player.tier + '\')">' +
+          '<td><strong>#' + player.playerNumber + '</strong></td>' +
+          '<td>' + player.name + '</td>' +
+          '<td><span class="badge">' + player.age + '</span></td>' +
+          '<td><span class="badge" style="background-color:#dbeafe; color:#1e40af;">' + player.tier + '</span></td>' +
+          '<td style="text-align: center; vertical-align: middle;">' + aggregateAverageDisplay + '</td>' +
+          '<td style="text-align: center; vertical-align: middle;">' + statusHtml + '</td>' +
+          '</tr>';
+          
+        tableBody.insertAdjacentHTML('beforeend', rowHtml);
+      });
+    }
+
     // --- MODAL INTERACTION LOGIC ---
-    function openEvalModal(playerNumber, age, tier) {
+    function openEvalModal(playerNumber, age, currentTier) {
       const modal = document.getElementById('evaluationModal');
       const title = document.getElementById('modalPlayerTitle');
       const content = document.getElementById('modalContentBody');
 
-      const player = globalPlayersCache.find(p => p.playerNumber === playerNumber && p.age === age && p.tier === tier);
-      if (!player) return;
+      // Locate player resource from live local application memory context
+      const playerIndex = globalPlayersCache.findIndex(p => p.playerNumber === playerNumber && p.age === age);
+      if (playerIndex === -1) return;
+      const player = globalPlayersCache[playerIndex];
 
       title.innerText = player.name + " (#" + player.playerNumber + ")";
       
       const evals = globalEvaluationsCache.filter(ev => 
-        ev.playerNumber === playerNumber && ev.age === age && ev.tier === tier
+        ev.playerNumber === playerNumber && ev.age === age
       );
 
-      if (evals.length === 0) {
-        content.innerHTML = '<p style="text-align:center; font-style:italic; padding: 2rem 0; color:#64748b;">No individual evaluation entry logs available for this player profile yet.</p>';
-      } else {
-        let htmlContent = "";
+      let htmlContent = "";
 
-        // ==========================================
-        // TOP HALF: CALCULATE SKILL CATEGORY AVERAGES
-        // ==========================================
-        let skillMetricsTracker = {}; // Format: { skating: { total: 12, count: 3 } }
+      // ==========================================
+      // SECTION 1: ROSTER ACTION CONTROLS (NEW)
+      // ==========================================
+      htmlContent += '<div class="action-panel">';
+      htmlContent += '  <div>';
+      htmlContent += '    <h6 style="margin-bottom:0; font-size:0.95rem; color:#334155;">Roster Decision Placement</h6>';
+      htmlContent += '    <small style="color:#64748b;">Current Allocation: <span style="font-weight:bold; text-transform:capitalize;">' + player.status + '</span> (' + player.tier + ')</small>';
+      htmlContent += '  </div>';
+      htmlContent += '  <div class="action-btn-group">';
+      htmlContent += '    <button class="success" onclick="updatePlayerStatus(' + playerIndex + ', \'selected\')" style="background-color:#10b981; border-color:#10b981;">Select Player</button>';
+      htmlContent += '    <button class="error" onclick="updatePlayerStatus(' + playerIndex + ', \'released\')" style="background-color:#ef4444; border-color:#ef4444;">Release Player</button>';
+      htmlContent += '  </div>';
+      htmlContent += '</div>';
 
-        evals.forEach(ev => {
-          const skillsObj = ev.skills || {};
-          for (const skillName in skillsObj) {
-            if (skillsObj.hasOwnProperty(skillName)) {
-              const score = parseFloat(skillsObj[skillName]);
-              if (!isNaN(score)) {
-                if (!skillMetricsTracker[skillName]) {
-                  skillMetricsTracker[skillName] = { totalSum: 0, count: 0 };
-                }
-                skillMetricsTracker[skillName].totalSum += score;
-                skillMetricsTracker[skillName].count += 1;
+      // ==========================================
+      // SECTION 2: TOP STATS - SKILL CATEGORY AVERAGES
+      // ==========================================
+      let skillMetricsTracker = {};
+
+      evals.forEach(ev => {
+        const skillsObj = ev.skills || {};
+        for (const skillName in skillsObj) {
+          if (skillsObj.hasOwnProperty(skillName)) {
+            const score = parseFloat(skillsObj[skillName]);
+            if (!isNaN(score)) {
+              if (!skillMetricsTracker[skillName]) {
+                skillMetricsTracker[skillName] = { totalSum: 0, count: 0 };
               }
+              skillMetricsTracker[skillName].totalSum += score;
+              skillMetricsTracker[skillName].count += 1;
             }
           }
-        });
-
-        // Generate the summary block layout HTML
-        htmlContent += '<div class="summary-section">';
-        htmlContent += '  <h5 style="margin-bottom:0.25rem; color:#1e3a8a;">📈 Category Skill Averages</h5>';
-        htmlContent += '  <small style="color:#4b5563;">Overall metric performance across all ' + evals.length + ' evaluation reports.</small>';
-        htmlContent += '  <div class="summary-grid">';
-
-        let baselineSkillsProcessed = 0;
-        for (const skillKey in skillMetricsTracker) {
-          if (skillMetricsTracker.hasOwnProperty(skillKey)) {
-            baselineSkillsProcessed++;
-            const avgScore = (skillMetricsTracker[skillKey].totalSum / skillMetricsTracker[skillKey].count).toFixed(1);
-            const formattedLabel = skillKey.charAt(0).toUpperCase() + skillKey.slice(1);
-            
-            htmlContent += '    <div class="summary-pill">';
-            htmlContent += '      <span>' + formattedLabel + '</span>';
-            htmlContent += '      <strong>' + avgScore + '</strong>';
-            htmlContent += '    </div>';
-          }
         }
+      });
 
-        if (baselineSkillsProcessed === 0) {
-          htmlContent += '    <div style="font-size:0.85rem; font-style:italic; color:#64748b;">No numeric skills logs found to aggregate.</div>';
+      htmlContent += '<div class="summary-section">';
+      htmlContent += '  <h5 style="margin-bottom:0.25rem; color:#1e3a8a;">📈 Category Skill Averages</h5>';
+      htmlContent += '  <small style="color:#4b5563;">Overall metric performance across all ' + evals.length + ' evaluation reports.</small>';
+      htmlContent += '  <div class="summary-grid">';
+
+      let baselineSkillsProcessed = 0;
+      for (const skillKey in skillMetricsTracker) {
+        if (skillMetricsTracker.hasOwnProperty(skillKey)) {
+          baselineSkillsProcessed++;
+          const avgScore = (skillMetricsTracker[skillKey].totalSum / skillMetricsTracker[skillKey].count).toFixed(1);
+          const formattedLabel = skillKey.charAt(0).toUpperCase() + skillKey.slice(1);
+          
+          htmlContent += '    <div class="summary-pill">';
+          htmlContent += '      <span>' + formattedLabel + '</span>';
+          htmlContent += '      <strong>' + avgScore + '</strong>';
+          htmlContent += '    </div>';
         }
+      }
 
-        htmlContent += '  </div>';
-        htmlContent += '</div>';
+      if (baselineSkillsProcessed === 0) {
+        htmlContent += '    <div style="font-size:0.85rem; font-style:italic; color:#64748b; padding:0.25rem;">No numeric skill parameters logged to calculate metrics.</div>';
+      }
 
-        // ==========================================
-        // BOTTOM HALF: INDIVIDUAL LOG SHEET CARDS
-        // ==========================================
-        htmlContent += '<h5 style="margin-bottom: 0.75rem; color:#475569;">📄 Individual Evaluation Logs</h5>';
-        
+      htmlContent += '  </div>';
+      htmlContent += '</div>';
+
+      // ==========================================
+      // SECTION 3: BOTTOM HALF - INDIVIDUAL LOG ENTRIES
+      // ==========================================
+      htmlContent += '<h5 style="margin-bottom: 0.75rem; color:#475569;">📄 Individual Evaluation Logs</h5>';
+      
+      if (evals.length === 0) {
+        htmlContent += '<p style="text-align:center; font-style:italic; padding: 1rem 0; color:#64748b;">No individual evaluation reports recorded for this player.</p>';
+      } else {
         evals.forEach((ev) => {
           const evalDate = ev.timestamp ? new Date(ev.timestamp).toLocaleDateString() : 'N/A';
           
@@ -344,7 +389,6 @@
           
           htmlContent += '  <div class="skill-grid">';
           const skillsObj = ev.skills || {};
-          
           for (const skillName in skillsObj) {
             if (skillsObj.hasOwnProperty(skillName)) {
               const cleanSkillLabel = skillName.charAt(0).toUpperCase() + skillName.slice(1);
@@ -359,14 +403,42 @@
             htmlContent += '    <strong>Notes:</strong> "' + noteText + '"';
             htmlContent += '  </div>';
           }
-          
           htmlContent += '</div>';
         });
+      }
+      
+      content.innerHTML = htmlContent;
+      modal.setAttribute('open', 'true');
+    }
+
+    // --- LIVE DECISION STATE MUTATION ENGINE ---
+    function updatePlayerStatus(playerIndex, newStatus) {
+      if (playerIndex < 0 || playerIndex >= globalPlayersCache.length) return;
+      
+      let player = globalPlayersCache[playerIndex];
+      player.status = newStatus;
+
+      // Handle structural Tier Demotion cascades automatically on Release action fires
+      if (newStatus === "released") {
+        let currentTierStr = player.tier.toLowerCase();
         
-        content.innerHTML = htmlContent;
+        // Dynamic matching filters looking for patterns like "Tier 1", "Tier1", or "1"
+        if (currentTierStr.includes("1")) {
+          player.tier = player.tier.replace("1", "2");
+        } else if (currentTierStr.includes("2")) {
+          player.tier = player.tier.replace("2", "3");
+        } else {
+          // Fallback parsing strategy logic if explicit tier numbers aren't caught
+          if (player.tier === "Tier 1") player.tier = "Tier 2";
+          else if (player.tier === "Tier 2") player.tier = "Tier 3";
+        }
       }
 
-      modal.setAttribute('open', 'true');
+      // Re-render core table row UI elements instantly
+      renderRosterTable();
+      
+      // Close viewport sequence completes step workflow
+      closeEvalModal();
     }
 
     function closeEvalModal() {
