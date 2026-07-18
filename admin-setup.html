@@ -294,7 +294,7 @@
       const payload = {
         name: document.getElementById('cName').value.trim(),
         role: "coach",
-        age: document.getElementById('cAge').value, // Captured new age selector mapping
+        age: document.getElementById('cAge').value, 
         tier: document.getElementById('cTier').value,
         password: document.getElementById('cPassword').value
       };
@@ -313,6 +313,8 @@
       const payload = {
         name: document.getElementById('eName').value.trim(),
         role: "evaluator",
+        age: "All", // <-- ADDED EXPLICIT DEFAULT AGE VALUE
+        tier: "All",
         password: document.getElementById('ePassword').value
       };
       const ok = await postToGateway("createUser", payload, "evaluatorStatus");
@@ -328,6 +330,8 @@
       const payload = {
         name: document.getElementById('aName').value.trim(),
         role: "admin",
+        age: "All", // <-- ADDED EXPLICIT DEFAULT AGE VALUE
+        tier: "All",
         password: document.getElementById('aPassword').value
       };
       const ok = await postToGateway("createUser", payload, "adminStatus");
