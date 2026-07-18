@@ -142,6 +142,11 @@
         const result = await response.json();
 
         if (result.success) {
+          // Verify that the user has a permitted portal access role
+          if (result.role !== "evaluator" && result.role !== "coach" && result.role !== "admin") {
+            throw new Error("Access Denied: Your account role lacks clearance parameters.");
+          }
+
           // Verify that server.js returns the document '_id'
           savedEvaluatorId = result.id || result._id || "ID_NOT_RETURNED";
           
