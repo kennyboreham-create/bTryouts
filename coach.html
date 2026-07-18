@@ -25,12 +25,17 @@
     .clickable-row { cursor: pointer; transition: background-color 0.15s ease; }
     .clickable-row:hover { background-color: #f1f5f9 !important; }
 
-    /* Evaluation Card Breakdowns inside Modal */
+    /* Modal Structure Additions */
+    .summary-section { background: #eff6ff; border: 1px solid #bfdbfe; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; }
+    .summary-pill { background: white; border: 1px solid #93c5fd; padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+    .summary-pill strong { color: #1e3a8a; font-size: 1.05rem; }
+
     .eval-breakdown-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; background: #fafafa; }
     .eval-header { display: flex; justify-content: space-between; font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.25rem; }
     .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; }
     .skill-pill { background: #fff; border: 1px solid #cbd5e1; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; display: flex; justify-content: space-between; }
-    .skill-pill strong { color: #1e3a8a; }
+    .skill-pill strong { color: #475569; }
   </style>
 </head>
 <body>
@@ -96,13 +101,13 @@
 
   <!-- EVALUATION BREAKDOWN MODAL DIALOG -->
   <dialog id="evaluationModal">
-    <article style="max-width: 600px; width: 100%;">
+    <article style="max-width: 650px; width: 100%;">
       <header>
         <a href="#close" aria-label="Close" class="close" onclick="closeEvalModal()" style="float: right;"></a>
         <h3 style="margin-bottom: 0;" id="modalPlayerTitle">Player Breakdown</h3>
       </header>
-      <div id="modalContentBody" style="max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
-        <!-- Dynamic Evaluation Sheets Populated Here -->
+      <div id="modalContentBody" style="max-height: 450px; overflow-y: auto; padding-right: 0.5rem;">
+        <!-- Dynamic Summary and Evaluation Sheets Populated Here -->
       </div>
       <footer>
         <button class="secondary" onclick="closeEvalModal()" style="margin-bottom: 0;">Close View</button>
@@ -197,7 +202,6 @@
           throw new Error("Data compilation pipeline exception received from database API.");
         }
 
-        // Cache globally so the modal popup can read data without hitting the database again
         globalPlayersCache = playersData.players || [];
         globalEvaluationsCache = evaluationsData.evaluations || [];
 
@@ -221,18 +225,18 @@
             let runningSumScore = 0;
             let numericFieldsLoggedCount = 0;
 
-          matchingEvals.forEach(function(evaluation) {
-            const activeSkillsObj = evaluation.skills || {};
-            for (const key in activeSkillsObj) {
-              if (activeSkillsObj.hasOwnProperty(key)) {
-                const scoreValue = parseFloat(activeSkillsObj[key]);
-                if (!isNaN(scoreValue)) {
-                  runningSumScore += scoreValue;
-                  numericFieldsLoggedCount++;
+            matchingEvals.forEach(function(evaluation) {
+              const activeSkillsObj = evaluation.skills || {};
+              for (const key in activeSkillsObj) {
+                if (activeSkillsObj.hasOwnProperty(key)) {
+                  const scoreValue = parseFloat(activeSkillsObj[key]);
+                  if (!isNaN(scoreValue)) {
+                    runningSumScore += scoreValue;
+                    numericFieldsLoggedCount++;
+                  }
                 }
               }
-            }
-          });
+            });
 
             if (numericFieldsLoggedCount > 0) {
               const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
@@ -240,7 +244,6 @@
             }
           }
 
-          // Build row with click bindings and tracking data properties
           const rowHtml = '<tr class="clickable-row" onclick="openEvalModal(\'' + player.playerNumber + '\', \'' + player.age + '\', \'' + player.tier + '\')">' +
             '<td><strong>#' + player.playerNumber + '</strong></td>' +
             '<td>' + player.name + '</td>' +
@@ -263,13 +266,11 @@
       const title = document.getElementById('modalPlayerTitle');
       const content = document.getElementById('modalContentBody');
 
-      // Find player profile object details from cache
       const player = globalPlayersCache.find(p => p.playerNumber === playerNumber && p.age === age && p.tier === tier);
       if (!player) return;
 
-      title.innerText = player.name + " (#" + player.playerNumber + ") - Evaluation Breakdown";
+      title.innerText = player.name + " (#" + player.playerNumber + ")";
       
-      // Filter out evaluation items specific to this exact player group scope context
       const evals = globalEvaluationsCache.filter(ev => 
         ev.playerNumber === playerNumber && ev.age === age && ev.tier === tier
       );
@@ -278,38 +279,80 @@
         content.innerHTML = '<p style="text-align:center; font-style:italic; padding: 2rem 0; color:#64748b;">No individual evaluation entry logs available for this player profile yet.</p>';
       } else {
         let htmlContent = "";
+
+        // ==========================================
+        // TOP HALF: CALCULATE SKILL CATEGORY AVERAGES
+        // ==========================================
+        let skillMetricsTracker = {}; // Format: { skating: { total: 12, count: 3 } }
+
+        evals.forEach(ev => {
+          const skillsObj = ev.skills || {};
+          for (const skillName in skillsObj) {
+            if (skillsObj.hasOwnProperty(skillName)) {
+              const score = parseFloat(skillsObj[skillName]);
+              if (!isNaN(score)) {
+                if (!skillMetricsTracker[skillName]) {
+                  skillMetricsTracker[skillName] = { totalSum: 0, count: 0 };
+                }
+                skillMetricsTracker[skillName].totalSum += score;
+                skillMetricsTracker[skillName].count += 1;
+              }
+            }
+          }
+        });
+
+        // Generate the summary block layout HTML
+        htmlContent += '<div class="summary-section">';
+        htmlContent += '  <h5 style="margin-bottom:0.25rem; color:#1e3a8a;">📈 Category Skill Averages</h5>';
+        htmlContent += '  <small style="color:#4b5563;">Overall metric performance across all ' + evals.length + ' evaluation reports.</small>';
+        htmlContent += '  <div class="summary-grid">';
+
+        let baselineSkillsProcessed = 0;
+        for (const skillKey in skillMetricsTracker) {
+          if (skillMetricsTracker.hasOwnProperty(skillKey)) {
+            baselineSkillsProcessed++;
+            const avgScore = (skillMetricsTracker[skillKey].totalSum / skillMetricsTracker[skillKey].count).toFixed(1);
+            const formattedLabel = skillKey.charAt(0).toUpperCase() + skillKey.slice(1);
+            
+            htmlContent += '    <div class="summary-pill">';
+            htmlContent += '      <span>' + formattedLabel + '</span>';
+            htmlContent += '      <strong>' + avgScore + '</strong>';
+            htmlContent += '    </div>';
+          }
+        }
+
+        if (baselineSkillsProcessed === 0) {
+          htmlContent += '    <div style="font-size:0.85rem; font-style:italic; color:#64748b;">No numeric skills logs found to aggregate.</div>';
+        }
+
+        htmlContent += '  </div>';
+        htmlContent += '</div>';
+
+        // ==========================================
+        // BOTTOM HALF: INDIVIDUAL LOG SHEET CARDS
+        // ==========================================
+        htmlContent += '<h5 style="margin-bottom: 0.75rem; color:#475569;">📄 Individual Evaluation Logs</h5>';
         
-        evals.forEach((ev, index) => {
-          // Format Timestamp cleanly
+        evals.forEach((ev) => {
           const evalDate = ev.timestamp ? new Date(ev.timestamp).toLocaleDateString() : 'N/A';
           
           htmlContent += '<div class="eval-breakdown-card">';
           htmlContent += '  <div class="eval-header">';
-          htmlContent += '    <span><strong>Evaluator Key:</strong> ' + (ev.evaluatorId || 'Anonymous') + '</span>';
+          htmlContent += '    <span><strong>Evaluator:</strong> ' + (ev.evaluatorId || 'Anonymous') + '</span>';
           htmlContent += '    <span><strong>Date:</strong> ' + evalDate + '</span>';
           htmlContent += '  </div>';
           
-          // Render individual skill points matrix pills
           htmlContent += '  <div class="skill-grid">';
           const skillsObj = ev.skills || {};
-          let totalSkillsFound = 0;
           
           for (const skillName in skillsObj) {
             if (skillsObj.hasOwnProperty(skillName)) {
-              totalSkillsFound++;
-              // Capitalize first letters of skill name labels nicely
               const cleanSkillLabel = skillName.charAt(0).toUpperCase() + skillName.slice(1);
               htmlContent += '    <div class="skill-pill">' + cleanSkillLabel + ': <strong>' + skillsObj[skillName] + '</strong></div>';
             }
           }
-          
-          if (totalSkillsFound === 0) {
-            htmlContent += '    <div style="font-size:0.85rem; font-style:italic; color:#94a3b8;">No quantitative attributes rated.</div>';
-          }
-          
           htmlContent += '  </div>';
           
-          // Render notes column seamlessly if filled out by reviewer
           const noteText = ev.notes ? ev.notes.trim() : "";
           if (noteText) {
             htmlContent += '  <div style="font-size: 0.85rem; background: #fff; padding: 0.5rem; border-left: 3px solid #1e3a8a; color: #475569; margin-top: 0.5rem;">';
@@ -323,7 +366,6 @@
         content.innerHTML = htmlContent;
       }
 
-      // Display the modal via Pico CSS standard interaction attribute toggles
       modal.setAttribute('open', 'true');
     }
 
