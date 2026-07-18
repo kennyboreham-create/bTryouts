@@ -470,6 +470,12 @@
         console.error("Database sync error:", err);
       }
     }
+    function closeEvalModal() {
+      const modal = document.getElementById('evaluationModal');
+      if (modal) {
+        modal.removeAttribute('open');
+      }
+    }
   </script>
 </body>
 </html>
