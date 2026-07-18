@@ -51,7 +51,7 @@
 <body>
 
   <!-- COACH SECURITY LOGGATE LAYER -->
-  <div id="loginLayer" class="login-overlay hidden">
+  <div id="loginLayer" class="login-overlay">
     <div class="login-card">
       <div style="text-align: center; margin-bottom: 1.5rem;">
         <h2 style="color: #1e3a8a; margin-bottom: 0.25rem;">Coach Portal Secure Login</h2>
@@ -75,6 +75,7 @@
 
   <!-- MAIN ROSTER REVIEW LAYER -->
   <div id="appLayer" class="hidden">
+    <!-- Inject this clean header ribbon setup right under your app layer container -->
     <div style="background-color: #0f172a; color: #f8fafc; padding: 0.5rem 1.5rem; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace;">
       <div>
         🏢 <span id="uiHeaderOrgName" style="font-weight: bold; color: #38bdf8;"></span> 
@@ -91,7 +92,7 @@
           <p style="color: #64748b; margin-bottom: 0;">Welcome, <span id="displayCoachName" style="font-weight:bold; color:#1e3a8a;"></span> | Filter Range: <mark id="displayScopeFilter"></mark></p>
           <small style="color: #94a3b8;">💡 Click on any player row below to access review breakdowns and change roster status permissions.</small>
         </div>
-        <button onclick="handleLogout()" class="outline contrast" style="margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
+        <button onclick="window.location.reload()" class="outline contrast" style="margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
       </header>
 
       <section class="portal-card">
@@ -142,11 +143,19 @@
     const currentOrgId = localStorage.getItem('orgId');
     const currentOrgName = localStorage.getItem('orgName');
     const currentUserName = localStorage.getItem('userName');
-    const currentUserRole = localStorage.getItem('userRole'); // Ensure your index.html sets this to 'coach'
 
-    // Single unified session context definition
+    // Boot tracking check: if variables aren't initialized, kick out to identity gateway entry node
+    if (!currentOrgId || !currentUserName) {
+      window.location.href = "index.html";
+    } else {
+      // Hydrate SaaS text targets instantly
+      document.getElementById('uiHeaderOrgName').innerText = currentOrgName;
+      document.getElementById('uiHeaderUserName').innerText = currentUserName;
+    }
+
+    // Single unified session context definition to prevent compilation redeclaration issues
     let coachSessionContext = { 
-      orgId: currentOrgId, 
+      orgId: currentOrgId, // Bound permanently to this app layer thread instance context
       age: localStorage.getItem('userAge') || "All", 
       tier: localStorage.getItem('userTier') || "All" 
     };
@@ -154,30 +163,7 @@
     let globalPlayersCache = [];
     let globalEvaluationsCache = [];
 
-    // --- RUN AUTO-AUTH CHECK IMMEDIATELY ON DOM LOAD ---
-    document.addEventListener("DOMContentLoaded", async function() {
-      // Security Check: Kick out completely if critical parameters or correct role are missing
-      if (!currentOrgId || !currentUserName || currentUserRole !== 'coach') {
-        // Clear anything corrupted and send back to login hub
-        localStorage.removeItem('userRole');
-        window.location.href = "index.html";
-        return;
-      }
-
-      // Hydrate SaaS interface header targets instantly
-      document.getElementById('uiHeaderOrgName').innerText = currentOrgName;
-      document.getElementById('uiHeaderUserName').innerText = currentUserName;
-      document.getElementById('displayCoachName').innerText = currentUserName;
-      document.getElementById('displayScopeFilter').innerText = coachSessionContext.age + " - " + coachSessionContext.tier;
-      
-      // Bypass login screen form entirely
-      document.getElementById('appLayer').classList.remove('hidden');
-      
-      // Auto-fetch data pipeline instantly
-      await loadCoachRosterDashboard();
-    });
-
-    // --- FALLBACK INTERACTIVE AUTHENTICATION GATEWAY ---
+    // --- INTERACTIVE AUTHENTICATION GATEWAY ---
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const btn = document.getElementById('loginBtn');
@@ -197,7 +183,7 @@
               name: document.getElementById('loginName').value.trim(),
               password: document.getElementById('loginPassword').value
             }
-          }
+          })
         });
         const result = await response.json();
 
@@ -206,15 +192,10 @@
             throw new Error("Access Denied: Account type mismatch. Dashboard requires Coach authorization.");
           }
           
-          localStorage.setItem('userRole', 'coach');
-          localStorage.setItem('userName', document.getElementById('loginName').value.trim());
-          if (result.age) localStorage.setItem('userAge', result.age);
-          if (result.tier) localStorage.setItem('userTier', result.tier);
-
           coachSessionContext.age = result.age || "All";
           coachSessionContext.tier = result.tier || "All";
           
-          document.getElementById('displayCoachName').innerText = localStorage.getItem('userName');
+          document.getElementById('displayCoachName').innerText = document.getElementById('loginName').value.trim();
           document.getElementById('displayScopeFilter').innerText = coachSessionContext.age + " - " + coachSessionContext.tier;
           
           document.getElementById('loginLayer').classList.add('hidden');
@@ -263,9 +244,10 @@
           throw new Error("Data compilation pipeline exception received from database API.");
         }
 
+        // Initialize state fields locally if they don't exist yet on the server objects
         globalPlayersCache = (playersData.players || []).map(p => ({
           ...p,
-          status: p.status || "ongoing"
+          status: p.status || "ongoing" // default baseline state assignment
         }));
         
         globalEvaluationsCache = evaluationsData.evaluations || [];
@@ -318,6 +300,7 @@
           }
         }
 
+        // Build status pill markup dynamically
         let statusHtml = '<span class="status-pill-ongoing">Ongoing</span>';
         if (player.status === "selected") {
           statusHtml = '<span class="status-pill-selected">Selected</span>';
@@ -344,6 +327,7 @@
       const title = document.getElementById('modalPlayerTitle');
       const content = document.getElementById('modalContentBody');
 
+      // Locate player resource from live local application memory context
       const playerIndex = globalPlayersCache.findIndex(p => p.playerNumber === playerNumber && p.age === age);
       if (playerIndex === -1) return;
       const player = globalPlayersCache[playerIndex];
@@ -356,6 +340,9 @@
 
       let htmlContent = "";
 
+      // ==========================================
+      // SECTION 1: ROSTER ACTION CONTROLS (NEW)
+      // ==========================================
       htmlContent += '<div class="action-panel">';
       htmlContent += '  <div>';
       htmlContent += '    <h6 style="margin-bottom:0; font-size:0.95rem; color:#334155;">Roster Decision Placement</h6>';
@@ -367,6 +354,9 @@
       htmlContent += '  </div>';
       htmlContent += '</div>';
 
+      // ==========================================
+      // SECTION 2: TOP STATS - SKILL CATEGORY AVERAGES
+      // ==========================================
       let skillMetricsTracker = {};
 
       evals.forEach(ev => {
@@ -411,6 +401,9 @@
       htmlContent += '  </div>';
       htmlContent += '</div>';
 
+      // ==========================================
+      // SECTION 3: BOTTOM HALF - INDIVIDUAL LOG ENTRIES
+      // ==========================================
       htmlContent += '<h5 style="margin-bottom: 0.75rem; color:#475569;">📄 Individual Evaluation Logs</h5>';
       
       if (evals.length === 0) {
@@ -457,13 +450,15 @@
       const originalStatus = player.status;
       const originalTier = player.tier;
 
+      // 1. Confirm the coach's choice via a modal alert prompt
       const displayAction = newStatus === "selected" ? "SELECT" : "RELEASE";
       const confirmationText = `Are you sure you want to ${displayAction} player ${player.name} (#${player.playerNumber})?`;
       
       if (!confirm(confirmationText)) {
-        return;
+        return; // Break out immediately if they click "Cancel"
       }
 
+      // 2. Calculate new status and tier locally
       let targetStatus = newStatus;
       let targetTier = player.tier;
 
@@ -480,6 +475,7 @@
       }
 
       try {
+        // 3. Sync changes to the database backend via Google Apps Script Proxy
         const response = await fetch(GAS_URL, {
           method: "POST",
           body: JSON.stringify({
@@ -492,7 +488,7 @@
               newStatus: targetStatus,
               newTier: targetTier
             }
-          }
+          })
         });
 
         const result = await response.json();
@@ -501,9 +497,11 @@
           throw new Error(result.error || "Database sync failed.");
         }
 
+        // 4. Update local cache only after successful DB modification
         player.status = targetStatus;
         player.tier = targetTier;
 
+        // 5. Re-render UI elements instantly
         renderRosterTable();
         closeEvalModal();
 
@@ -518,11 +516,6 @@
       if (modal) {
         modal.removeAttribute('open');
       }
-    }
-
-    function handleLogout() {
-      localStorage.removeItem('userRole');
-      window.location.href = "index.html";
     }
   </script>
 </body>
