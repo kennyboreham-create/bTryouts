@@ -75,14 +75,24 @@
 
   <!-- MAIN ROSTER REVIEW LAYER -->
   <div id="appLayer" class="hidden">
+    <!-- Inject this clean header ribbon setup right under your app layer container -->
+    <div style="background-color: #0f172a; color: #f8fafc; padding: 0.5rem 1.5rem; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; font-family: monospace;">
+      <div>
+        🏢 <span id="uiHeaderOrgName" style="font-weight: bold; color: #38bdf8;"></span> 
+        <span style="color: #64748b; margin: 0 0.5rem;">|</span> 
+        👤 Active User: <span id="uiHeaderUserName" style="color: #f1f5f9;"></span>
+      </div>
+      <div>Secure SaaS Node Connection Active ✓</div>
+    </div>
+
     <main class="container">
-      <header style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+      <header style="margin-top: 1.5rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
         <div>
           <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">Tryout Roster Evaluator Metrics</h1>
           <p style="color: #64748b; margin-bottom: 0;">Welcome, <span id="displayCoachName" style="font-weight:bold; color:#1e3a8a;"></span> | Filter Range: <mark id="displayScopeFilter"></mark></p>
           <small style="color: #94a3b8;">💡 Click on any player row below to access review breakdowns and change roster status permissions.</small>
         </div>
-        <button onclick="window.location.reload()" class="outline contrast" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
+        <button onclick="window.location.reload()" class="outline contrast" style="margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
       </header>
 
       <section class="portal-card">
@@ -129,7 +139,27 @@
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
 
-    let coachSessionContext = { age: "All", tier: "All" };
+    // --- MULTI-TENANT SESSION GATEWAY AUTHENTICATION SYSTEM ---
+    const currentOrgId = localStorage.getItem('orgId');
+    const currentOrgName = localStorage.getItem('orgName');
+    const currentUserName = localStorage.getItem('userName');
+
+    // Boot tracking check: if variables aren't initialized, kick out to identity gateway entry node
+    if (!currentOrgId || !currentUserName) {
+      window.location.href = "index.html";
+    } else {
+      // Hydrate SaaS text targets instantly
+      document.getElementById('uiHeaderOrgName').innerText = currentOrgName;
+      document.getElementById('uiHeaderUserName').innerText = currentUserName;
+    }
+
+    // Single unified session context definition to prevent compilation redeclaration issues
+    let coachSessionContext = { 
+      orgId: currentOrgId, // Bound permanently to this app layer thread instance context
+      age: localStorage.getItem('userAge') || "All", 
+      tier: localStorage.getItem('userTier') || "All" 
+    };
+
     let globalPlayersCache = [];
     let globalEvaluationsCache = [];
 
@@ -149,6 +179,7 @@
           body: JSON.stringify({
             action: "loginUser",
             payload: {
+              orgId: coachSessionContext.orgId,
               name: document.getElementById('loginName').value.trim(),
               password: document.getElementById('loginPassword').value
             }
@@ -194,14 +225,14 @@
             method: "POST",
             body: JSON.stringify({
               action: "getPlayers",
-              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+              payload: { orgId: coachSessionContext.orgId, age: coachSessionContext.age, tier: coachSessionContext.tier }
             })
           }),
           fetch(GAS_URL, {
             method: "POST",
             body: JSON.stringify({
               action: "getEvaluations",
-              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+              payload: { orgId: coachSessionContext.orgId, age: coachSessionContext.age, tier: coachSessionContext.tier }
             })
           })
         ]);
@@ -450,6 +481,7 @@
           body: JSON.stringify({
             action: "updatePlayerStatus",
             payload: {
+              orgId: coachSessionContext.orgId,
               playerNumber: player.playerNumber,
               age: player.age,
               currentTier: originalTier,
@@ -478,7 +510,7 @@
         console.error("Database sync error:", err);
       }
     }
-    
+
     function closeEvalModal() {
       const modal = document.getElementById('evaluationModal');
       if (modal) {
