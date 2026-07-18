@@ -140,90 +140,94 @@
     });
 
     // --- METRIC SYSTEM AGGREGATION ENGINE ---
-    async function loadCoachRosterDashboard() {
-      const tableBody = document.getElementById('rosterTableBody');
-      
-      try {
-        const [playersResponse, evaluationsResponse] = await Promise.all([
-          fetch(GAS_URL, {
-            method: "POST",
-            body: JSON.stringify({
-              action: "getPlayers",
-              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
-            })
-          }),
-          fetch(GAS_URL, {
-            method: "POST",
-            body: JSON.stringify({
-              action: "getEvaluations",
-              payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
-            })
+  async function loadCoachRosterDashboard() {
+    const tableBody = document.getElementById('rosterTableBody');
+    
+    try {
+      const [playersResponse, evaluationsResponse] = await Promise.all([
+        fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "getPlayers",
+            payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
           })
-        ]);
+        }),
+        fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "getEvaluations",
+            payload: { age: coachSessionContext.age, tier: coachSessionContext.tier }
+          })
+        })
+      ]);
 
-        const playersData = await playersResponse.json();
-        const evaluationsData = await evaluationsResponse.json();
+      const playersData = await playersResponse.json();
+      const evaluationsData = await evaluationsResponse.json();
 
-        if (!playersData.success || !evaluationsData.success) {
-          throw new Error("Data compilation pipeline exception received from database API.");
-        }
+      if (!playersData.success || !evaluationsData.success) {
+        throw new Error("Data compilation pipeline exception received from database API.");
+      }
 
-        const playerList = playersData.players || [];
-        const evaluationsList = evaluationsData.evaluations || [];
+      const playerList = playersData.players || [];
+      const evaluationsList = evaluationsData.evaluations || [];
 
-        if (playerList.length === 0) {
-          tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; font-style: italic;">No tryout player rosters match your current visibility scope range filters.</td></tr>';
-          return;
-        }
+      if (playerList.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; font-style: italic;">No tryout player rosters match your current visibility scope range filters.</td></tr>';
+        return;
+      }
 
-        tableBody.innerHTML = "";
+      tableBody.innerHTML = "";
 
-        playerList.forEach(function(player) {
-          const matchingEvals = evaluationsList.filter(function(ev) {
-            return ev.playerNumber === player.playerNumber && ev.age === player.age;
-          });
-
-          let aggregateAverageDisplay = '<span class="no-data">Unrated</span>';
-          
-          if (matchingEvals.length > 0) {
-            let runningSumScore = 0;
-            let numericFieldsLoggedCount = 0;
-
-            matchingEvals.forEach(function(evaluation) {
-              for (const key in evaluation) {
-                if (evaluation.hasOwnProperty(key)) {
-                  if (key !== '_id' && key !== 'name' && key !== 'playerNumber' && key !== 'age' && key !== 'tier' && key !== 'submittedAt') {
-                    const scoreValue = parseFloat(evaluation[key]);
-                    if (!isNaN(scoreValue)) {
-                      runningSumScore += scoreValue;
-                      numericFieldsLoggedCount++;
-                    }
-                  }
-                }
-              }
-            });
-
-            if (numericFieldsLoggedCount > 0) {
-              const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
-              aggregateAverageDisplay = '<span class="metric-avg">' + absoluteAvg + '</span> <small style="color:#64748b;">(' + matchingEvals.length + ' evaluations)</small>';
-            }
-          }
-
-          const rowHtml = '<tr>' +
-            '<td><strong>#' + player.playerNumber + '</strong></td>' +
-            '<td>' + player.name + '</td>' +
-            '<td><span class="badge">' + player.age + '</span></td>' +
-            '<td><span class="badge" style="background-color:#dbeafe; color:#1e40af;">' + player.tier + '</span></td>' +
-            '<td style="text-align: center; vertical-align: middle;">' + aggregateAverageDisplay + '</td>' +
-            '</tr>';
-            
-          tableBody.insertAdjacentHTML('beforeend', rowHtml);
+      playerList.forEach(function(player) {
+        // --- MATCHING LOGIC FIX ---
+        // Look specifically for evaluation documents matching this player's number, age group, AND tier level
+        const matchingEvals = evaluationsList.filter(function(ev) {
+          return ev.playerNumber === player.playerNumber && 
+                 ev.age === player.age && 
+                 ev.tier === player.tier;
         });
 
-      } catch (err) {
-        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #991b1b; font-weight: bold;">Roster Compilation Failure: ' + err.message + '</td></tr>';
-      }
+        let aggregateAverageDisplay = '<span class="no-data">Unrated</span>';
+        
+        if (matchingEvals.length > 0) {
+          let runningSumScore = 0;
+          let numericFieldsLoggedCount = 0;
+
+          matchingEvals.forEach(function(evaluation) {
+            // Read data directly from the dynamic nested skills sub-object in the evaluations collection
+            const activeSkillsObj = evaluation.skills || {};
+            for (const key in activeSkillsObj) {
+              if (activeSkillsObj.hasOwnProperty(key)) {
+                const scoreValue = parseFloat(activeSkillsObj[key]);
+                if (!isNaN(scoreValue)) {
+                  runningSumScore += scoreValue;
+                  numericFieldsLoggedCount++;
+                }
+              }
+            }
+          });
+
+          if (numericFieldsLoggedCount > 0) {
+            const absoluteAvg = (runningSumScore / numericFieldsLoggedCount).toFixed(1);
+            aggregateAverageDisplay = '<span class="metric-avg">' + absoluteAvg + '</span> <small style="color:#64748b;">(' + matchingEvals.length + ' evals)</small>';
+          }
+        }
+
+        const rowHtml = '<tr>' +
+          '<td><strong>#' + player.playerNumber + '</strong></td>' +
+          '<td>' + player.name + '</td>' +
+          '<td><span class="badge">' + player.age + '</span></td>' +
+          '<td><span class="badge" style="background-color:#dbeafe; color:#1e40af;">' + player.tier + '</span></td>' +
+          '<td style="text-align: center; vertical-align: middle;">' + aggregateAverageDisplay + '</td>' +
+          '</tr>';
+          
+        tableBody.insertAdjacentHTML('beforeend', rowHtml);
+      });
+
+    } catch (err) {
+      tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #991b1b; font-weight: bold;">Roster Compilation Failure: ' + err.message + '</td></tr>';
     }
+  }
   </script>
 </body>
 </html>
