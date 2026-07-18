@@ -13,130 +13,205 @@
     .status-banner { padding: 0.75rem; border-radius: 6px; font-weight: bold; font-size: 0.9rem; margin-top: 1rem; display: none; text-align: center; }
     .status-success { background-color: #d1fae5; color: #065f46; display: block; }
     .status-error { background-color: #fee2e2; color: #991b1b; display: block; }
+    
+    /* Login Screen Layer Elements */
+    .login-overlay { position: fixed; inset: 0; background: #1e3a8a; display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 1000; }
+    .login-card { background: white; padding: 2rem; border-radius: 8px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-  <main class="container" style="max-width: 900px;">
-    <header style="margin-bottom: 2rem; text-align: center;">
-      <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">🛠️ Data Management Center</h1>
-      <p style="color: #64748b;">Provision system rosters, coaching tiers, and administrative keys</p>
-    </header>
-
-    <!-- SECTION 1: PLAYERS ROSTER INPUT -->
-    <section class="management-card">
-      <h2>1. Provision Tryout Player</h2>
-      <form id="playerForm">
-        <div class="grid">
-          <div>
-            <label for="pName">Full Name</label>
-            <input type="text" id="pName" placeholder="John Doe" required>
-          </div>
-          <div>
-            <label for="pNumber">Jersey / Bib #</label>
-            <input type="text" id="pNumber" placeholder="42" required>
-          </div>
-        </div>
-        <div class="grid">
-          <div>
-            <label for="pAge">Age Group</label>
-            <select id="pAge" required>
-              <option value="">Select Group...</option>
-              <option value="9U">9U</option>
-              <option value="11U">11U</option>
-              <option value="12U">12U</option>
-              <option value="13U">13U</option>
-              <option value="15U">15U</option>
-            </select>
-          </div>
-          <div>
-            <label for="pLevel">Assigned Level</label>
-            <select id="pLevel" required>
-              <option value="">Select Level...</option>
-              <option value="Tier 1">Tier 1</option>
-              <option value="Tier 2">Tier 2</option>
-              <option value="House League">House League</option>
-            </select>
-          </div>
-        </div>
-        <button type="submit" class="primary">Save Player Record</button>
-        <div id="playerStatus" class="status-banner"></div>
+  <!-- ADMIN SECURITY GATEWAY LAYER -->
+  <div id="loginLayer" class="login-overlay">
+    <div class="login-card">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="color: #1e3a8a; margin-bottom: 0.25rem;">🔐 Admin Console Secure Login</h2>
+        <p style="color: #64748b; font-size: 0.9rem;">Administrative access privileges required</p>
+      </div>
+      
+      <form id="loginForm">
+        <label for="loginName">Admin Identifier</label>
+        <input type="text" id="loginName" required placeholder="e.g. admin_master">
+        
+        <label for="loginPassword">Access Password</label>
+        <input type="password" id="loginPassword" required placeholder="••••••••">
+        
+        <button type="submit" id="loginBtn" class="primary" style="width: 100%; margin-top: 0.5rem;">
+          Verify Administrative Credentials
+        </button>
+        <div id="loginError" class="status-banner status-error"></div>
       </form>
-    </section>
+    </div>
+  </div>
 
-    <!-- SECTION 2: COACH REGISTRATION -->
-    <section class="management-card">
-      <h2>2. Provision Coach Credentials</h2>
-      <form id="coachForm">
-        <div class="grid">
-          <div>
-            <label for="cName">Coach Name</label>
-            <input type="text" id="cName" placeholder="Coach Miller" required>
-          </div>
-          <div>
-            <label for="cTier">Assigned Tier Visibility</label>
-            <select id="cTier" required>
-              <option value="">Select Tier...</option>
-              <option value="Tier 1">Tier 1</option>
-              <option value="Tier 2">Tier 2</option>
-              <option value="House League">House League</option>
-              <option value="All">All Tiers (Global Coach)</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label for="cPassword">Portal Access Password (Auto-Generated)</label>
-          <input type="text" id="cPassword" placeholder="Auto-generates when name is entered" required>
-        </div>
-        <button type="submit" class="secondary">Register Coach Account</button>
-        <div id="coachStatus" class="status-banner"></div>
-      </form>
-    </section>
+  <!-- MAIN CONFIGURATION APP INTERFACE (Hidden by default until authorization) -->
+  <div id="appLayer" class="hidden">
+    <main class="container" style="max-width: 900px;">
+      <header style="margin-bottom: 2rem; text-align: center;">
+        <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">🛠️ Data Management Center</h1>
+        <p style="color: #64748b;">Provision system rosters, coaching tiers, and administrative keys</p>
+      </header>
 
-    <!-- SECTION 3: EVALUATOR REGISTRATION -->
-    <section class="management-card">
-      <h2>3. Provision Evaluator Credentials</h2>
-      <form id="evaluatorForm">
-        <div>
-          <label for="eName">Evaluator Full Name</label>
-          <input type="text" id="eName" placeholder="John Smith" required>
-        </div>
-        <div>
-          <label for="ePassword">Portal Access Password (Auto-Generated)</label>
-          <input type="text" id="ePassword" placeholder="Auto-generates when name is entered" required>
-        </div>
-        <button type="submit" style="background-color: #2563eb; border-color: #2563eb;">Register Evaluator Account</button>
-        <div id="evaluatorStatus" class="status-banner"></div>
-      </form>
-    </section>
+      <!-- SECTION 1: PLAYERS ROSTER INPUT -->
+      <section class="management-card">
+        <h2>1. Provision Tryout Player</h2>
+        <form id="playerForm">
+          <div class="grid">
+            <div>
+              <label for="pName">Full Name</label>
+              <input type="text" id="pName" placeholder="John Doe" required>
+            </div>
+            <div>
+              <label for="pNumber">Jersey / Bib #</label>
+              <input type="text" id="pNumber" placeholder="42" required>
+            </div>
+          </div>
+          <div class="grid">
+            <div>
+              <label for="pAge">Age Group</label>
+              <select id="pAge" required>
+                <option value="">Select Group...</option>
+                <option value="9U">9U</option>
+                <option value="11U">11U</option>
+                <option value="12U">12U</option>
+                <option value="13U">13U</option>
+                <option value="15U">15U</option>
+              </select>
+            </div>
+            <div>
+              <label for="pLevel">Assigned Level</label>
+              <select id="pLevel" required>
+                <option value="">Select Level...</option>
+                <option value="Tier 1">Tier 1</option>
+                <option value="Tier 2">Tier 2</option>
+                <option value="House League">House League</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="primary">Save Player Record</button>
+          <div id="playerStatus" class="status-banner"></div>
+        </form>
+      </section>
 
-    <!-- SECTION 4: ADMIN ACCESS PROVISIONING -->
-    <section class="management-card">
-      <h2>4. Create System Administrator</h2>
-      <form id="adminForm">
-        <div class="grid">
-          <div>
-            <label for="aName">Admin Username / Identifier</label>
-            <input type="text" id="aName" placeholder="admin_master" required>
+      <!-- SECTION 2: COACH REGISTRATION -->
+      <section class="management-card">
+        <h2>2. Provision Coach Credentials</h2>
+        <form id="coachForm">
+          <div class="grid">
+            <div>
+              <label for="cName">Coach Name</label>
+              <input type="text" id="cName" placeholder="Coach Miller" required>
+            </div>
+            <div>
+              <label for="cTier">Assigned Tier Visibility</label>
+              <select id="cTier" required>
+                <option value="">Select Tier...</option>
+                <option value="Tier 1">Tier 1</option>
+                <option value="Tier 2">Tier 2</option>
+                <option value="House League">House League</option>
+                <option value="All">All Tiers (Global Coach)</option>
+              </select>
+            </div>
           </div>
           <div>
-            <label for="aPassword">Administrative Master Password (Auto-Generated)</label>
-            <input type="text" id="aPassword" placeholder="Auto-generates when name is entered" required>
+            <label for="cPassword">Portal Access Password (Auto-Generated)</label>
+            <input type="text" id="cPassword" placeholder="Auto-generates when name is entered" required>
           </div>
-        </div>
-        <button type="submit" class="contrast">Generate Admin Privileges</button>
-        <div id="adminStatus" class="status-banner"></div>
-      </form>
-    </section>
-  </main>
+          <button type="submit" class="secondary">Register Coach Account</button>
+          <div id="coachStatus" class="status-banner"></div>
+        </form>
+      </section>
+
+      <!-- SECTION 3: EVALUATOR REGISTRATION -->
+      <section class="management-card">
+        <h2>3. Provision Evaluator Credentials</h2>
+        <form id="evaluatorForm">
+          <div>
+            <label for="eName">Evaluator Full Name</label>
+            <input type="text" id="eName" placeholder="John Smith" required>
+          </div>
+          <div>
+            <label for="ePassword">Portal Access Password (Auto-Generated)</label>
+            <input type="text" id="ePassword" placeholder="Auto-generates when name is entered" required>
+          </div>
+          <button type="submit" style="background-color: #2563eb; border-color: #2563eb; color: white;">Register Evaluator Account</button>
+          <div id="evaluatorStatus" class="status-banner"></div>
+        </form>
+      </section>
+
+      <!-- SECTION 4: ADMIN ACCESS PROVISIONING -->
+      <section class="management-card">
+        <h2>4. Create System Administrator</h2>
+        <form id="adminForm">
+          <div class="grid">
+            <div>
+              <label for="aName">Admin Username / Identifier</label>
+              <input type="text" id="aName" placeholder="admin_master" required>
+            </div>
+            <div>
+              <label for="aPassword">Administrative Master Password (Auto-Generated)</label>
+              <input type="text" id="aPassword" placeholder="Auto-generates when name is entered" required>
+            </div>
+          </div>
+          <button type="submit" class="contrast">Generate Admin Privileges</button>
+          <div id="adminStatus" class="status-banner"></div>
+        </form>
+      </section>
+    </main>
+  </div>
 
   <script>
     // 1. Paste your exact Google Apps Script URL here
-    const GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
+
+    // --- ADMINISTRATIVE GATEWAY AUTHORIZATION ---
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      const errorDiv = document.getElementById('loginError');
+      
+      btn.disabled = true;
+      btn.innerText = "Authenticating Admin System Context...";
+      errorDiv.style.display = "none";
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "loginUser",
+            payload: {
+              name: document.getElementById('loginName').value.trim(),
+              password: document.getElementById('loginPassword').value
+            }
+          })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          // STRICT SECURITY ENFORCEMENT: Reject if role is anything other than admin
+          if (result.role !== "admin") {
+            throw new Error("Access Denied: Your account role lacks clearance parameters.");
+          }
+          
+          // Clear overlay layer panel views
+          document.getElementById('loginLayer').classList.add('hidden');
+          document.getElementById('appLayer').classList.remove('hidden');
+        } else {
+          throw new Error(result.error || "Wrong credentials");
+        }
+      } catch (err) {
+        errorDiv.innerText = err.message;
+        errorDiv.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Verify Administrative Credentials";
+      }
+    });
 
     // Strong Password Generator Helper
     function generateStrongPassword() {
-      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*()_+[]{}|;:,.<>?";
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789📡⚡🛠️🔥";
       let password = "";
       for (let i = 0; i < 12; i++) {
         password += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -147,23 +222,17 @@
     // Event Listeners to auto-fill password field ONLY when its corresponding name changes
     document.getElementById('cName').addEventListener('change', function() {
       const passField = document.getElementById('cPassword');
-      if (this.value.trim() && !passField.value) {
-        passField.value = generateStrongPassword();
-      }
+      if (this.value.trim() && !passField.value) passField.value = generateStrongPassword();
     });
 
     document.getElementById('eName').addEventListener('change', function() {
       const passField = document.getElementById('ePassword');
-      if (this.value.trim() && !passField.value) {
-        passField.value = generateStrongPassword();
-      }
+      if (this.value.trim() && !passField.value) passField.value = generateStrongPassword();
     });
 
     document.getElementById('aName').addEventListener('change', function() {
       const passField = document.getElementById('aPassword');
-      if (this.value.trim() && !passField.value) {
-        passField.value = generateStrongPassword();
-      }
+      if (this.value.trim() && !passField.value) passField.value = generateStrongPassword();
     });
 
     // Dynamic submission routing pipeline
@@ -173,15 +242,10 @@
       statusEl.innerText = "Transmitting to cloud architecture...";
       statusEl.style.display = "block";
 
-      const wrapper = {
-        action: actionType,
-        payload: dataPayload
-      };
-
       try {
         const response = await fetch(GAS_URL, {
           method: "POST",
-          body: JSON.stringify(wrapper)
+          body: JSON.stringify({ action: actionType, payload: dataPayload })
         });
         const responseData = await response.json();
 
