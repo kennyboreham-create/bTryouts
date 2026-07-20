@@ -119,54 +119,77 @@
     let savedEvaluatorId = ""; 
 
     // --- LOGIN IDENTITY HANDLER ---
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const loginBtn = document.getElementById('loginBtn');
-      const loginError = document.getElementById('loginError');
-      
-      loginBtn.disabled = true;
-      loginBtn.innerText = "Verifying Identity...";
-      loginError.className = "hidden";
+    async function authenticateEvaluator(name, password, loginBtn, loginError) {
+      if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.innerText = "Verifying Identity...";
+      }
+      if (loginError) loginError.className = "hidden";
+
+      const orgId = localStorage.getItem('orgId');
+      const payload = { name, password };
+      if (orgId) payload.orgId = orgId;
 
       try {
         const response = await fetch(GAS_URL, {
           method: 'POST',
           body: JSON.stringify({
             action: "loginUser",
-            payload: {
-              name: document.getElementById('loginName').value.trim(),
-              password: document.getElementById('loginPassword').value
-            }
+            payload
           })
         });
         const result = await response.json();
 
         if (result.success) {
-          // Verify that the user has a permitted portal access role
           if (result.role !== "evaluator" && result.role !== "coach" && result.role !== "admin") {
             throw new Error("Access Denied: Your account role lacks clearance parameters.");
           }
 
-          // Verify that server.js returns the document '_id'
           savedEvaluatorId = result.id || result._id || "ID_NOT_RETURNED";
-          
+
           document.getElementById('evaluatorId').value = savedEvaluatorId;
           document.getElementById('loginLayer').classList.add('hidden');
           document.getElementById('appLayer').classList.remove('hidden');
-          
-          // Seed the initial evaluation row
+
           createSkillRow();
-        } else {
-          throw new Error(result.error || "Wrong credentials");
+          return true;
         }
+
+        throw new Error(result.error || "Wrong credentials");
       } catch (err) {
-        loginError.innerText = err.message;
-        loginError.className = "block bg-red-100 text-red-800 text-center text-sm font-semibold p-2 rounded mt-2";
+        if (loginError) {
+          loginError.innerText = err.message;
+          loginError.className = "block bg-red-100 text-red-800 text-center text-sm font-semibold p-2 rounded mt-2";
+        }
+        return false;
       } finally {
-        loginBtn.disabled = false;
-        loginBtn.innerText = "Authorize Session";
+        if (loginBtn) {
+          loginBtn.disabled = false;
+          loginBtn.innerText = "Authorize Session";
+        }
       }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('loginName').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      localStorage.setItem('userPassword', password);
+      await authenticateEvaluator(name, password, document.getElementById('loginBtn'), document.getElementById('loginError'));
     });
+
+    // Auto-login when arriving from index.html with stored session credentials
+    (async function tryAutoLoginFromSession() {
+      const storedName = localStorage.getItem('userName');
+      const storedPassword = localStorage.getItem('userPassword');
+      const storedRole = localStorage.getItem('userRole');
+      if (storedName && storedPassword && storedRole === 'evaluator') {
+        document.getElementById('loginName').value = storedName;
+        await authenticateEvaluator(storedName, storedPassword);
+      } else if (!storedName || !storedPassword) {
+        window.location.href = "index.html";
+      }
+    })();
 
     // --- DYNAMIC MATRIX COMPONENT BUILDER ---
     function createSkillRow() {

@@ -178,24 +178,23 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
 
     // --- ADMINISTRATIVE GATEWAY AUTHORIZATION ---
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const btn = document.getElementById('loginBtn');
-      const errorDiv = document.getElementById('loginError');
-      
-      btn.disabled = true;
-      btn.innerText = "Authenticating Admin System Context...";
-      errorDiv.style.display = "none";
+    async function authenticateAdmin(name, password, btn, errorDiv) {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Authenticating Admin System Context...";
+      }
+      if (errorDiv) errorDiv.style.display = "none";
+
+      const orgId = localStorage.getItem('orgId');
+      const payload = { name, password };
+      if (orgId) payload.orgId = orgId;
 
       try {
         const response = await fetch(GAS_URL, {
           method: 'POST',
           body: JSON.stringify({
             action: "loginUser",
-            payload: {
-              name: document.getElementById('loginName').value.trim(),
-              password: document.getElementById('loginPassword').value
-            }
+            payload
           })
         });
         const result = await response.json();
@@ -206,17 +205,44 @@
           }
           document.getElementById('loginLayer').classList.add('hidden');
           document.getElementById('appLayer').classList.remove('hidden');
-        } else {
-          throw new Error(result.error || "Wrong credentials");
+          return true;
         }
+
+        throw new Error(result.error || "Wrong credentials");
       } catch (err) {
-        errorDiv.innerText = err.message;
-        errorDiv.style.display = "block";
+        if (errorDiv) {
+          errorDiv.innerText = err.message;
+          errorDiv.style.display = "block";
+        }
+        return false;
       } finally {
-        btn.disabled = false;
-        btn.innerText = "Verify Administrative Credentials";
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = "Verify Administrative Credentials";
+        }
       }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('loginName').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      localStorage.setItem('userPassword', password);
+      await authenticateAdmin(name, password, document.getElementById('loginBtn'), document.getElementById('loginError'));
     });
+
+    // Auto-login when arriving from index.html with stored session credentials
+    (async function tryAutoLoginFromSession() {
+      const storedName = localStorage.getItem('userName');
+      const storedPassword = localStorage.getItem('userPassword');
+      const storedRole = localStorage.getItem('userRole');
+      if (storedName && storedPassword && storedRole === 'admin') {
+        document.getElementById('loginName').value = storedName;
+        await authenticateAdmin(storedName, storedPassword);
+      } else if (!storedName || !storedPassword) {
+        window.location.href = "index.html";
+      }
+    })();
 
     // Strong Password Generator Helper
     function generateStrongPassword() {

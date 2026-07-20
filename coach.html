@@ -164,14 +164,12 @@
     let globalEvaluationsCache = [];
 
     // --- INTERACTIVE AUTHENTICATION GATEWAY ---
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const btn = document.getElementById('loginBtn');
-      const errorDiv = document.getElementById('loginError');
-      
-      btn.disabled = true;
-      btn.innerText = "Authorizing App Layer Signatures...";
-      errorDiv.style.display = "none";
+    async function authenticateCoach(name, password, btn, errorDiv) {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Authorizing App Layer Signatures...";
+      }
+      if (errorDiv) errorDiv.style.display = "none";
 
       try {
         const response = await fetch(GAS_URL, {
@@ -180,8 +178,8 @@
             action: "loginUser",
             payload: {
               orgId: coachSessionContext.orgId,
-              name: document.getElementById('loginName').value.trim(),
-              password: document.getElementById('loginPassword').value
+              name,
+              password
             }
           })
         });
@@ -191,29 +189,54 @@
           if (result.role !== "coach") {
             throw new Error("Access Denied: Account type mismatch. Dashboard requires Coach authorization.");
           }
-          
+
           coachSessionContext.age = result.age || "All";
           coachSessionContext.tier = result.tier || "All";
-          
-          document.getElementById('displayCoachName').innerText = document.getElementById('loginName').value.trim();
+          localStorage.setItem('userAge', coachSessionContext.age);
+          localStorage.setItem('userTier', coachSessionContext.tier);
+
+          document.getElementById('displayCoachName').innerText = name;
           document.getElementById('displayScopeFilter').innerText = coachSessionContext.age + " - " + coachSessionContext.tier;
-          
+
           document.getElementById('loginLayer').classList.add('hidden');
           document.getElementById('appLayer').classList.remove('hidden');
-          
-          await loadCoachRosterDashboard();
 
-        } else {
-          throw new Error(result.error || "Wrong credentials");
+          await loadCoachRosterDashboard();
+          return true;
         }
+
+        throw new Error(result.error || "Wrong credentials");
       } catch (err) {
-        errorDiv.innerText = err.message;
-        errorDiv.style.display = "block";
+        if (errorDiv) {
+          errorDiv.innerText = err.message;
+          errorDiv.style.display = "block";
+        }
+        return false;
       } finally {
-        btn.disabled = false;
-        btn.innerText = "Verify Coaching Credentials";
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = "Verify Coaching Credentials";
+        }
       }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('loginName').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      localStorage.setItem('userPassword', password);
+      await authenticateCoach(name, password, document.getElementById('loginBtn'), document.getElementById('loginError'));
     });
+
+    // Auto-login when arriving from index.html with stored session credentials
+    (async function tryAutoLoginFromSession() {
+      const storedPassword = localStorage.getItem('userPassword');
+      const storedRole = localStorage.getItem('userRole');
+      if (storedPassword && storedRole === 'coach' && currentUserName) {
+        document.getElementById('loginName').value = currentUserName;
+        await authenticateCoach(currentUserName, storedPassword);
+      }
+    })();
 
     // --- METRIC SYSTEM AGGREGATION ENGINE ---
     async function loadCoachRosterDashboard() {

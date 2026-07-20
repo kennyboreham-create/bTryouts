@@ -85,11 +85,12 @@
           localStorage.setItem('userRole', result.role);
           localStorage.setItem('userAge', result.age || "All");
           localStorage.setItem('userTier', result.tier || "All");
+          localStorage.setItem('userPassword', password);
 
           // Route user package onto corresponding dashboard file targets smoothly
           if (selectedRole === "coach") window.location.href = "coach.html";
           else if (selectedRole === "evaluator") window.location.href = "evaluator.html";
-          else if (selectedRole === "admin") window.location.href = "admin.html";
+          else if (selectedRole === "admin") window.location.href = "admin-setup.html";
 
         } else {
           throw new Error(result.error || "Invalid Organization, Username, or Password combination.");
