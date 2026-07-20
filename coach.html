@@ -92,7 +92,7 @@
           <p style="color: #64748b; margin-bottom: 0;">Welcome, <span id="displayCoachName" style="font-weight:bold; color:#1e3a8a;"></span> | Filter Range: <mark id="displayScopeFilter"></mark></p>
           <small style="color: #94a3b8;">💡 Click on any player row below to access review breakdowns and change roster status permissions.</small>
         </div>
-        <button onclick="window.location.reload()" class="outline contrast" style="margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
+        <button type="button" onclick="logoutSession()" class="outline contrast" style="margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Log Out</button>
       </header>
 
       <section class="portal-card">
@@ -136,6 +136,7 @@
     </article>
   </dialog>
 
+  <script src="auth.js"></script>
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
 

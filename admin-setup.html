@@ -48,9 +48,12 @@
   <!-- MAIN CONFIGURATION APP INTERFACE (Hidden by default until authorization) -->
   <div id="appLayer" class="hidden">
     <main class="container" style="max-width: 900px;">
-      <header style="margin-bottom: 2rem; text-align: center;">
-        <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">🛠️ Data Management Center</h1>
-        <p style="color: #64748b;">Provision system rosters, coaching tiers, and administrative keys</p>
+      <header style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+        <div style="text-align: center; flex: 1;">
+          <h1 style="color: #1e3a8a; font-weight: 800; margin-bottom: 0.25rem;">🛠️ Data Management Center</h1>
+          <p style="color: #64748b; margin-bottom: 0;">Provision system rosters, coaching tiers, and administrative keys</p>
+        </div>
+        <button type="button" onclick="logoutSession()" class="outline contrast" style="margin-bottom: 0; white-space: nowrap;">Log Out</button>
       </header>
 
       <!-- SECTION 1: PLAYERS ROSTER INPUT -->
@@ -173,6 +176,7 @@
     </main>
   </div>
 
+  <script src="auth.js"></script>
   <script>
     // 1. Paste your exact Google Apps Script URL here
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";

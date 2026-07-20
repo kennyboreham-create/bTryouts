@@ -41,8 +41,11 @@
       <header class="sticky top-0 bg-blue-900 text-white shadow-md z-50 px-4 py-3">
         <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
           <h1 class="text-xl font-bold tracking-wide">⚡ Tryouts Input Portal</h1>
-          
-          <div class="flex gap-2 w-full sm:w-auto">
+
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button type="button" onclick="logoutSession()" class="bg-blue-800 hover:bg-blue-700 border-2 border-blue-600 rounded px-3 py-1.5 text-sm font-semibold whitespace-nowrap">
+              Log Out
+            </button>
             <select id="ageFilter" required class="bg-blue-800 text-white border-2 border-blue-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-1/2 sm:w-36">
               <option value="">Select Age *</option>
               <option value="9U">9U</option>
@@ -111,6 +114,7 @@
     </form>
   </div>
 
+  <script src="auth.js"></script>
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx1YzCg4kJYNO3rskRcK4NkehSlMiibHFvlCdjy0sr3g16RgJemy2rN132UyyIEhLc/exec";
     
